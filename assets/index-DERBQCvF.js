@@ -258,7 +258,9 @@ Error generating stack: `+s.message+`
 🔥 Racha: ${a.streak} días
 🏆 Nivel: ${S.title}
 
-¡La consistencia es clave! #NetworkMarketing #ProgresoDiario`,Z=async()=>{if(navigator.share)try{await navigator.share({title:"Mi Progreso Diario",text:B})}catch(Q){console.log("Error sharing",Q)}else q()},q=()=>{navigator.clipboard.writeText(B),v(!0),setTimeout(()=>v(!1),2e3)},V=async()=>{const Q="https://frankestrategias-alt.github.io/progreso-diario/",O=`🚀 *¡Lleva tu negocio MLM al siguiente nivel!* 
+¡La consistencia es clave!
+
+Prueba la app aquí: https://frankestrategias-alt.github.io/progreso-diario/`,Z=async()=>{if(navigator.share)try{await navigator.share({title:"Mi Progreso Diario",text:B})}catch(Q){console.log("Error sharing",Q)}else q()},q=()=>{navigator.clipboard.writeText(B),v(!0),setTimeout(()=>v(!1),2e3)},V=async()=>{const Q="https://frankestrategias-alt.github.io/progreso-diario/",O=`🚀 *¡Lleva tu negocio MLM al siguiente nivel!* 
 
 Usa esta *herramienta gratuita* para profesionalizar tu prospección, seguimientos y contenido diario. 
 
