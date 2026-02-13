@@ -606,19 +606,20 @@ Reglas para generar mensajes:
     - CERO VENTA DIRECTA. No nombres la marca como si fuera un catálogo. Vende la CURIOSIDAD.
     - Lenguaje natural, como le hablarías a un amigo.
     - Usa asteriscos (*) para resaltar conceptos clave.
-    - VARIEDAD VISUAL CRÍTICA: La "imageHint" DEBE ser una instrucción de arte POTENTE y específica. No sugieras cosas genéricas.
-      Si es para WhatsApp, piensa en el formato VERTICAL y personal. 
+    - VARIEDAD VISUAL CRÍTICA: La "imageHint" DEBE ser una instrucción de arte DIRECTA y ACCIONABLE. No sugieras cosas genéricas.
+      USA ESTE FORMATO EXACTO: "Debes crear un [formato] de [tiempo/detalle] haciendo [actividad] y luego subirlo a tu [Red Social]".
+      Si es para WhatsApp, usa específicamente "Estados de WhatsApp".
       Alterna entre: 
-      - MISIÓN VISUAL: Video de 5 segundos de una acción cotidiana (caminando, sirviendo un café, cerrando un laptop).
-      - MISIÓN VISUAL: Foto de "estilo de vida" (el libro que lees, tu vista hoy, tus manos trabajando).
-      - MISIÓN VISUAL: Foto de "detalle" (un plano cerrado de un producto pero sin marca, la luz del sol).
+      - MISIÓN VISUAL: Un video de 5 segundos de una acción cotidiana (caminando, sirviendo un café, cerrando un laptop).
+      - MISIÓN VISUAL: Una foto de "estilo de vida" (el libro que lees, tu vista hoy, tus manos trabajando).
+      - MISIÓN VISUAL: Una foto de "detalle" (un plano cerrado de un producto pero sin marca, la luz del sol).
       - MISIÓN VISUAL: Una transición rápida para Reels/TikTok.
 
     FORMATO DE SALIDA (JSON ABSOLUTO):
     {
       "mainPost": "${c?"Resumen corto de qué decir":"Texto completo del post para copiar"}",
       "cta": "Instrucción de cierre (ej: 'Comenta INFO')",
-      "imageHint": "MISIÓN VISUAL: [Instrucción ultra-específica, potente y fácil de digerir]",
+      "imageHint": "MISIÓN VISUAL: Debes crear un [Video/Foto] de [Detalle] haciendo [Actividad] y luego subirlo a tu ${i==="WhatsApp"?"Estados de WhatsApp":i}",
       ${c?`"videoScript": {
         "hook": "Frase exacta del gancho",
         "body": "Puntos clave o frase del desarrollo",
