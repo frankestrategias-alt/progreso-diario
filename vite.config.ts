@@ -4,8 +4,10 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
+  const isVercel = env.VERCEL === '1' || process.env.VERCEL === '1' || mode === 'production';
+
   return {
-    base: env.VERCEL ? '/' : '/progreso-diario/',
+    base: isVercel ? '/' : '/progreso-diario/',
     server: {
       port: 3000,
       host: '0.0.0.0',
