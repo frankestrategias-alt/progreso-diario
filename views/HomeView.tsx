@@ -156,7 +156,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
           </div>
 
           <div className="flex gap-2 items-start text-right">
-            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest mt-1">v2.0 Beta</span>
             <div className="flex gap-2">
               <button onClick={() => setViewState('STATS')} className="p-2 rounded-xl bg-slate-700/50 text-slate-300 hover:text-white border border-white/10" title="Estadísticas">
                 <BarChart3 size={20} />
