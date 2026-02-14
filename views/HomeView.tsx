@@ -70,7 +70,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
   const currentLevelData = LEVELS.find(l => l.level === gamification.level) || LEVELS[0];
   const nextLevelData = LEVELS.find(l => l.level === gamification.level + 1);
   const xpForNextLevel = nextLevelData ? nextLevelData.minXp : gamification.xp * 1.5;
-  const xpProgress = Math.min(100, Math.max(0, ((gamification.xp - currentLevelData.minXp) / (xpForNextLevel - currentLevelData.minXp)) * 100));
+  const xpProgress = Math.round(Math.min(100, Math.max(0, ((gamification.xp - currentLevelData.minXp) / (xpForNextLevel - currentLevelData.minXp)) * 100)));
 
   const shareText = `🚀 *Mi Progreso de Hoy*\n\n✅ Contactos: ${progress.contactsMade}/${goals.dailyContacts}\n🔄 Seguimientos: ${progress.followUpsMade}/${goals.dailyFollowUps}\n📢 Posts: ${progress.postsMade || 0}/${goals.dailyPosts || 1}\n🔥 Racha: ${gamification.streak} días\n🏆 Nivel: ${currentLevelData.title}\n\n¡La consistencia es clave!\n\nPrueba la app aquí: https://mlm-action-partner.vercel.app`;
 
