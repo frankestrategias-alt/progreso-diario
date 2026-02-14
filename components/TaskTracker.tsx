@@ -67,7 +67,7 @@ export const TaskTracker: React.FC = () => {
                     onChange={(e) => setNewTaskName(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && addTask()}
                     placeholder="Nombre del prospecto..."
-                    className="flex-1 min-w-0 bg-white border-2 border-slate-200 rounded-2xl px-4 py-4 text-sm font-semibold focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500 focus:outline-none transition-all placeholder:text-slate-300 shadow-sm"
+                    className="flex-1 min-w-0 bg-white border-2 border-slate-300 rounded-2xl px-4 py-4 text-sm font-bold text-slate-900 focus:ring-4 focus:ring-emerald-100 focus:border-emerald-600 focus:outline-none transition-all placeholder:text-slate-500 shadow-sm"
                 />
                 <button
                     onClick={addTask}

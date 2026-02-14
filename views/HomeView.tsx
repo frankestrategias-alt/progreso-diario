@@ -124,9 +124,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
           <div onClick={() => setViewState('GOALS')} className="cursor-pointer">
             <div className="flex items-center gap-2 mb-1">
               <span className="bg-amber-500/20 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-500/20 uppercase tracking-wider">
-                v2.2 Beta
-              </span>
-              <span className="bg-amber-500/20 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-500/20 uppercase tracking-wider">
                 Nivel {gamification.level}
               </span>
               {gamification.streak > 0 && (
