@@ -77,7 +77,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onRecordAction, goals 
                 Paso 1
               </span>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">
-                ¿A quién vas a invitar? (Nombre y Perfil)
+                ¿A quién vas a invitar?
               </label>
               <div className="relative">
                 <input
