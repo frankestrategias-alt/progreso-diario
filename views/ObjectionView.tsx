@@ -66,12 +66,12 @@ export const ObjectionView: React.FC<ObjectionViewProps> = ({ goals }) => {
                                 <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2 mb-3">
                                     ¿Qué te dijeron? (Selecciona una)
                                 </p>
-                                <div className="grid grid-cols-1 gap-2">
+                                <div className="grid grid-cols-1 gap-3">
                                     {commonObjections.map((obj) => (
                                         <button
                                             key={obj}
                                             onClick={() => handleObjectionSubmit(obj)}
-                                            className="bg-amber-50/50 p-3 rounded-xl border border-amber-100/50 flex items-center justify-between hover:bg-amber-100 hover:scale-[1.02] transition-all text-left group"
+                                            className="bg-white p-4 rounded-xl border border-amber-100/50 flex items-center justify-between hover:bg-amber-50 hover:scale-[1.02] transition-all text-left group shadow-sm shadow-amber-900/5 active:scale-95"
                                         >
                                             <span className="font-bold text-amber-900/80 text-sm group-hover:text-amber-900">{obj}</span>
                                             <ChevronRight size={16} className="text-amber-300 group-hover:text-amber-500 transition-colors" />
