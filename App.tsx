@@ -274,7 +274,7 @@ function App() {
   const getTitle = () => {
     switch (view) {
       case 'HOME': return 'MLM Progreso Diario';
-      case 'CONTACT': return 'Contactar';
+      case 'CONTACT': return 'Invitar / Prospectar';
       case 'FOLLOWUP': return 'Seguimiento';
       case 'OBJECTIONS': return 'Manejo de Objeciones';
       case 'GOALS': return 'Mis Metas';

@@ -61,9 +61,9 @@ export const ContactView: React.FC<ContactViewProps> = ({ onRecordAction, goals 
         <div className="flex items-center gap-3 mb-6 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100">
           <span className="text-3xl">✨</span>
           <div>
-            <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Generador de Mensajes</p>
+            <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Generador de Invitaciones</p>
             <h2 className="text-lg font-black text-emerald-900 leading-tight">
-              Rompe el Hielo
+              Crear Invitación Irresistible
             </h2>
           </div>
         </div>
@@ -77,7 +77,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onRecordAction, goals 
                 Paso 1
               </span>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">
-                ¿A quién le escribes? (Contexto)
+                ¿A quién vas a invitar? (Nombre y Perfil)
               </label>
               <div className="relative">
                 <input
@@ -150,7 +150,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onRecordAction, goals 
               }`}
           >
             {loading ? <Sparkles className="animate-spin" size={20} /> : <Sparkles size={20} className="group-hover:rotate-12 transition-transform" />}
-            {loading ? 'Cocinando Mensajes...' : '¡Generar Opciones!'}
+            {loading ? 'Cocinando Invitación...' : '¡Crear Invitación!'}
           </button>
         </div>
       </div>
