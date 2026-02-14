@@ -196,12 +196,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
             >
               ⚡ Crear
             </button>
-            <button
-              onClick={() => onRecordPost(true)}
-              className="mt-1 text-[8px] font-black text-slate-500 hover:text-pink-400 uppercase tracking-tighter transition-colors flex items-center gap-1"
-            >
-              🆘 Modo Rescate
-            </button>
           </div>
         </div>
       </div>
