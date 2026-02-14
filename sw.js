@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mlm-progreso-v8';
+const CACHE_NAME = 'mlm-progreso-v9-force';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
