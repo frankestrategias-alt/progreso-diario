@@ -71,7 +71,7 @@ export const ObjectionView: React.FC<ObjectionViewProps> = ({ goals }) => {
                                         <button
                                             key={obj}
                                             onClick={() => handleObjectionSubmit(obj)}
-                                            className="bg-white p-4 rounded-xl border border-amber-100/50 flex items-center justify-between hover:bg-amber-50 hover:scale-[1.02] transition-all text-left group shadow-sm shadow-amber-900/5 active:scale-95"
+                                            className="bg-white p-4 rounded-xl border border-amber-200/60 flex items-center justify-between hover:bg-amber-50 hover:scale-[1.02] transition-all text-left group shadow-lg shadow-amber-900/10 active:scale-95"
                                         >
                                             <span className="font-bold text-amber-900/80 text-sm group-hover:text-amber-900">{obj}</span>
                                             <ChevronRight size={16} className="text-amber-300 group-hover:text-amber-500 transition-colors" />
