@@ -72,7 +72,7 @@ export const TaskTracker: React.FC = () => {
                 <button
                     onClick={addTask}
                     disabled={!newTaskName.trim()}
-                    className="bg-emerald-600 text-white px-5 rounded-2xl hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-200/50 flex items-center justify-center group-hover:scale-[1.02] active:scale-95"
+                    className="bg-emerald-600 text-white min-w-[60px] px-4 rounded-2xl hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-200/50 flex items-center justify-center shrink-0 active:scale-95 border-2 border-emerald-500"
                 >
                     <Plus size={24} strokeWidth={3} />
                 </button>
