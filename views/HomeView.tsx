@@ -295,13 +295,19 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
       </div>
 
       {/* COMPARTIR HERRAMIENTA (RESTORED) */}
-      <div className="pt-6 border-t border-slate-100 mt-6">
+      <div className="pt-6 border-t border-slate-100 mt-6 relative z-10">
         <button
           onClick={shareTool}
-          className="w-full flex items-center justify-center gap-3 py-6 bg-slate-900 text-white rounded-[28px] font-black hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 active:scale-[0.98] group"
+          className="w-full flex items-center justify-center gap-3 py-6 relative overflow-hidden rounded-[28px] font-black group transition-all shadow-2xl shadow-indigo-500/40 hover:shadow-indigo-500/60 active:scale-[0.98] ring-4 ring-indigo-500/20 hover:ring-indigo-500/40 border-2 border-white/20"
         >
-          <Share2 size={24} className="group-hover:rotate-12 transition-transform" />
-          <span className="text-sm tracking-tight uppercase">Compartir esta herramienta</span>
+          {/* Background Gradient - Animated */}
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 animate-gradient bg-[length:200%_200%]"></div>
+
+          {/* Shine Effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-shimmer"></div>
+
+          <Share2 size={26} className="text-white relative z-10 group-hover:rotate-12 transition-transform drop-shadow-md" />
+          <span className="text-base tracking-tight uppercase text-white relative z-10 drop-shadow-md">Compartir esta herramienta</span>
         </button>
         <p className="text-center text-[10px] text-slate-400 mt-3 font-bold uppercase tracking-widest">
           Ayuda a tu equipo a ejecutar todos los días
