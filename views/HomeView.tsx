@@ -182,10 +182,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
           <div className="flex flex-col items-center gap-2 relative group">
             <div onClick={() => setShowPostModal(true)} className="cursor-pointer transition-transform active:scale-95">
               <CircularProgress current={progress.postsMade || 0} max={goals.dailyPosts || 1} colorClass="text-pink-400" icon={Megaphone} size={64} />
-              {/* Flash Action Badge */}
-              <div className="absolute -top-1 -right-1 bg-pink-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-bounce shadow-lg shadow-pink-500/50">
-                Ir
-              </div>
             </div>
             <button
               onClick={() => setShowPostModal(true)}
