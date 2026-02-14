@@ -66,15 +66,15 @@ export const TaskTracker: React.FC = () => {
                     value={newTaskName}
                     onChange={(e) => setNewTaskName(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && addTask()}
-                    placeholder="Nombre del prospecto..."
-                    className="flex-1 bg-white border-2 border-slate-200 rounded-2xl px-5 py-4 text-base font-semibold focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500 focus:outline-none transition-all placeholder:text-slate-300 shadow-sm"
+                    placeholder="Prospecto..."
+                    className="flex-1 min-w-0 bg-white border-2 border-slate-200 rounded-2xl px-4 py-4 text-sm font-semibold focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500 focus:outline-none transition-all placeholder:text-slate-300 shadow-sm"
                 />
                 <button
                     onClick={addTask}
                     disabled={!newTaskName.trim()}
-                    className="bg-emerald-600 text-white min-w-[60px] px-4 rounded-2xl hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-200/50 flex items-center justify-center shrink-0 active:scale-95 border-2 border-emerald-500"
+                    className="w-16 h-auto bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-200/50 flex items-center justify-center shrink-0 active:scale-95 border-2 border-emerald-500"
                 >
-                    <Plus size={24} strokeWidth={3} />
+                    <Plus size={24} strokeWidth={4} />
                 </button>
             </div>
 
