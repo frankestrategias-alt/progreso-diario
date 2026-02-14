@@ -60,7 +60,7 @@ export const TaskTracker: React.FC = () => {
                 )}
             </div>
 
-            <div className="flex gap-2 mb-6">
+            <div className="flex gap-3 mb-6 items-stretch">
                 <input
                     type="text"
                     value={newTaskName}
@@ -72,9 +72,9 @@ export const TaskTracker: React.FC = () => {
                 <button
                     onClick={addTask}
                     disabled={!newTaskName.trim()}
-                    className="bg-emerald-600 text-white p-3 rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-100"
+                    className="bg-emerald-600 text-white px-5 rounded-2xl hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-200/50 flex items-center justify-center group-hover:scale-[1.02] active:scale-95"
                 >
-                    <Plus size={24} />
+                    <Plus size={24} strokeWidth={3} />
                 </button>
             </div>
 
