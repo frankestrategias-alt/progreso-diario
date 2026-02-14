@@ -123,9 +123,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
         <div className="flex justify-between items-start mb-6 relative z-10">
           <div onClick={() => setViewState('GOALS')} className="cursor-pointer">
             <div className="flex items-center gap-2 mb-1">
-              <span className="bg-amber-500/20 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-500/20 uppercase tracking-wider">
-                Nivel {gamification.level}
-              </span>
               {gamification.streak > 0 && (
                 <span className="relative flex items-center gap-1 bg-orange-500/20 text-orange-400 text-[10px] font-bold px-3 py-1 rounded-full border border-orange-500/20 uppercase tracking-wider overflow-hidden group">
                   {/* Pulsing Glow Background */}
