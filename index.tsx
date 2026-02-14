@@ -13,3 +13,21 @@ root.render(
     <App />
   </React.StrictMode>
 );
+
+// FORCE UNREGISTER SERVICE WORKER TO FIX CACHE ISSUES
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function (registrations) {
+    for (let registration of registrations) {
+      registration.unregister();
+      console.log('Service Worker Unregistered');
+    }
+  });
+
+  // Clear Caches
+  caches.keys().then(names => {
+    for (let name of names) {
+      caches.delete(name);
+      console.log('Cache Deleted:', name);
+    }
+  });
+}

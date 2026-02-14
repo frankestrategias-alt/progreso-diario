@@ -1,18 +1,27 @@
 import React, { useState } from 'react';
-import { Send, Clock, Loader2, ThumbsUp, Bell, Calendar, CheckCircle } from 'lucide-react';
+import { Send, Clock, Loader2, ThumbsUp, Bell, Calendar, CheckCircle, Sparkles, MessageCircle, AlertCircle } from 'lucide-react';
+import { triggerMagic } from '../utils/magic';
 import { generateFollowUpScript } from '../services/geminiService';
 import { ActionCard } from '../components/ActionCard';
+import { UserGoals } from '../types';
+import { VoiceInput } from '../components/VoiceInput';
 
 interface FollowUpViewProps {
   onRecordAction: () => void;
+  goals: UserGoals;
 }
 
-export const FollowUpView: React.FC<FollowUpViewProps> = ({ onRecordAction }) => {
+
+
+export const FollowUpView: React.FC<FollowUpViewProps> = ({ onRecordAction, goals }) => {
   const [lastInteraction, setLastInteraction] = useState('');
   const [timeAgo, setTimeAgo] = useState('3 días');
   const [interest, setInterest] = useState('Medio');
+  const [tone, setTone] = useState('Profesional');
   const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('Analizando contexto...');
   const [results, setResults] = useState<string[]>([]);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   // Reminder State
   const [showReminder, setShowReminder] = useState(false);
@@ -20,49 +29,94 @@ export const FollowUpView: React.FC<FollowUpViewProps> = ({ onRecordAction }) =>
   const [reminderTime, setReminderTime] = useState('');
   const [reminderSet, setReminderSet] = useState(false);
 
+  const handleResult = (result: 'success' | 'later') => {
+    if (result === 'success') {
+      triggerMagic();
+      alert("¡Esa es la actitud! 🔥 Sigue sembrando.");
+    }
+    setShowFeedback(false);
+    onRecordAction(); // Log activity
+  };
+
   const handleGenerate = async () => {
     if (!lastInteraction.trim()) return;
     setLoading(true);
     setResults([]);
-    
-    const response = await generateFollowUpScript(lastInteraction, timeAgo, interest);
-    const scripts = response.split('---').map(s => s.trim()).filter(s => s.length > 0);
-    
-    setResults(scripts);
-    setLoading(false);
+    setShowFeedback(false);
+
+    const steps = ['Analizando contexto...', 'Diseñando estrategia...', 'Redactando mensajes...', 'Aplicando persuasión...'];
+    let stepIndex = 0;
+    const interval = setInterval(() => {
+      setLoadingText(steps[stepIndex % steps.length]);
+      stepIndex++;
+    }, 800);
+
+    try {
+      const response = await generateFollowUpScript(lastInteraction, timeAgo, interest, tone, goals.companyName);
+      const scripts = response.split('---').map(s => s.trim()).filter(s => s.length > 0);
+      setResults(scripts);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      clearInterval(interval);
+      setLoading(false);
+    }
   };
 
-  const handleSetReminder = () => {
+  const handleSetReminder = async () => {
     if (!reminderDate || !reminderTime) {
-      alert("Por favor selecciona fecha y hora.");
+      alert("📅 Por favor, elige cuándo quieres hacer la magia.");
       return;
     }
 
-    const scheduledTime = new Date(`${reminderDate}T${reminderTime}`);
-    const now = new Date();
-    const timeUntil = scheduledTime.getTime() - now.getTime();
+    // 1. ADD TO TASK TRACKER (LocalStorage Sync)
+    const taskName = lastInteraction
+      ? `Seguimiento: ${lastInteraction.substring(0, 25)}${lastInteraction.length > 25 ? '...' : ''} (${reminderTime})`
+      : `Seguimiento Agendado (${reminderTime})`;
 
-    if (timeUntil < 0) {
-      alert("La fecha debe ser en el futuro.");
-      return;
-    }
+    const newTask = {
+      id: Date.now().toString(),
+      name: taskName,
+      completed: false
+    };
 
-    // Visual feedback
+    try {
+      const existing = JSON.parse(localStorage.getItem('dailyTasks') || '[]');
+      localStorage.setItem('dailyTasks', JSON.stringify([...existing, newTask]));
+    } catch (e) { console.error(e); }
+
+    // 2. MAGIC FEEDBACK
+    // 2. MAGIC FEEDBACK
+    triggerMagic();
+
     setReminderSet(true);
-    setTimeout(() => setReminderSet(false), 3000);
 
-    // Simulation of notification
-    alert(`✅ Recordatorio establecido para el ${scheduledTime.toLocaleString()}\n\n(Nota: Mantén esta pestaña abierta para recibir la alerta simulada)`);
-
-    setTimeout(() => {
-      alert(`🔔 ¡RECORDATORIO DE SEGUIMIENTO!\n\nContexto: ${lastInteraction}\n\n¡Es hora de contactar a tu prospecto!`);
-    }, timeUntil);
+    // Notification API (Best Effort)
+    if ("Notification" in window) {
+      if (Notification.permission === "granted") {
+        setTimeout(() => new Notification("🔔 Recordatorio Guardado", { body: taskName }), 200);
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission();
+      }
+    }
   };
+
+  const HelperChip = ({ label, active, onClick, colorClass = "blue" }: any) => (
+    <button
+      onClick={onClick}
+      className={`px-3 py-2 rounded-xl text-sm font-medium transition-all border shadow-sm flex-1 text-center whitespace-nowrap
+        ${active
+          ? `bg-${colorClass}-50 text-${colorClass}-700 border-${colorClass}-200 ring-2 ring-${colorClass}-100`
+          : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-slate-700'
+        }`}
+    >
+      {label}
+    </button>
+  );
 
   return (
-    <div className="space-y-6 animate-in slide-in-from-right duration-300">
-      
-      {/* Inline Styles for Custom Animations */}
+    <div className="space-y-6 animate-in slide-in-from-right duration-300 pb-20">
+
       <style>
         {`
           @keyframes shimmer {
@@ -84,163 +138,260 @@ export const FollowUpView: React.FC<FollowUpViewProps> = ({ onRecordAction }) =>
         `}
       </style>
 
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-        <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <Clock className="text-blue-500" size={20} />
-          Datos del Seguimiento
-        </h2>
-        
-        <div className="space-y-4">
+      {/* INPUT SECTION */}
+      <div className="bg-white/80 backdrop-blur-xl p-6 rounded-[32px] shadow-2xl shadow-indigo-100/50 border border-white/40 relative overflow-hidden">
+
+        {/* Header Badge */}
+        <div className="flex items-center gap-3 mb-6 bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
+          <span className="text-3xl">🤝</span>
           <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">¿Qué hablaron la última vez?</label>
-            <input 
-              type="text" 
-              value={lastInteraction}
-              onChange={(e) => setLastInteraction(e.target.value)}
-              placeholder="Ej: Vio el video de presentación, probó el producto..."
-              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-            />
+            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Estrategia de Seguimiento</p>
+            <h2 className="text-lg font-black text-indigo-900 leading-tight">
+              Retoma la Conversación
+            </h2>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          {/* Step 1: Context */}
+          <div className="relative">
+            <div className="absolute -left-3 top-6 bottom-0 w-0.5 bg-indigo-100 hidden sm:block"></div>
+            <div className="bg-white border-2 border-indigo-50 rounded-3xl p-5 relative shadow-sm">
+              <span className="absolute -top-3 left-4 bg-indigo-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
+                Paso 1
+              </span>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex justify-between items-center">
+                <span>¿Qué hablaron antes?</span>
+                <VoiceInput onTranscript={(text: string) => setLastInteraction(prev => prev ? `${prev} ${text}` : text)} />
+              </label>
+              <textarea
+                value={lastInteraction}
+                onChange={(e) => setLastInteraction(e.target.value)}
+                placeholder="Ej: Le envié el video hace 2 días, tenía dudas sobre el precio..."
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 transition-all placeholder:text-slate-400 text-slate-700 min-h-[100px] resize-none text-base font-medium"
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">Tiempo pasado</label>
-                <select 
-                    value={timeAgo}
-                    onChange={(e) => setTimeAgo(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
-                >
-                    <option>1 día</option>
-                    <option>3 días</option>
-                    <option>1 semana</option>
-                    <option>+2 semanas</option>
-                </select>
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">Interés previo</label>
-                <select 
-                    value={interest}
-                    onChange={(e) => setInterest(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
-                >
-                    <option>Alto</option>
-                    <option>Medio</option>
-                    <option>Bajo</option>
-                    <option>Indeciso</option>
-                </select>
+          {/* Step 2: Details Grid */}
+          <div className="relative">
+            <div className="bg-white border-2 border-indigo-50 rounded-3xl p-5 relative shadow-sm">
+              <span className="absolute -top-3 left-4 bg-slate-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
+                Paso 2
+              </span>
+
+              <div className="space-y-4">
+                {/* Time Input */}
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Hace cuánto fue</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['1 día', '3 días', '1 semana', '+2 semanas'].map(t => (
+                      <HelperChip
+                        key={t}
+                        label={t}
+                        active={timeAgo === t}
+                        onClick={() => setTimeAgo(t)}
+                        colorClass="indigo"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Interest Grid (Full Width) */}
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nivel de Interés</label>
+                  <div className="flex gap-2">
+                    {['Alto', 'Medio', 'Bajo'].map(i => (
+                      <HelperChip
+                        key={i}
+                        label={i}
+                        active={interest === i}
+                        onClick={() => setInterest(i)}
+                        colorClass={i === 'Alto' ? 'emerald' : i === 'Bajo' ? 'rose' : 'amber'}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
           <button
             onClick={handleGenerate}
             disabled={!lastInteraction || loading}
-            className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-md transition-all relative overflow-hidden ${
-              loading 
-              ? 'bg-gradient-to-r from-blue-400 via-indigo-500 to-blue-400 animate-gradient-blue text-white' 
-              : !lastInteraction 
-                  ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
-                  : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
-            }`}
+            className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-2 shadow-xl transition-all duration-300 relative overflow-hidden group uppercase tracking-widest text-sm ${loading
+              ? 'bg-slate-100 text-slate-400 cursor-wait'
+              : !lastInteraction
+                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                : 'bg-gradient-to-r from-violet-600 via-indigo-600 to-violet-600 bg-[length:200%_auto] hover:bg-[position:100%_0] text-white shadow-indigo-200/50 hover:shadow-indigo-300/60 hover:-translate-y-0.5 active:scale-95'
+              }`}
           >
-            {loading ? <Clock className="animate-spin" size={20}/> : <Send size={20} />}
-            {loading ? 'Redactando...' : 'Crear Seguimiento'}
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin text-indigo-500" size={18} />
+                <span className="animate-pulse bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-violet-500">{loadingText}</span>
+              </>
+            ) : (
+              <>
+                <Sparkles size={18} className={lastInteraction ? "text-yellow-200 animate-pulse" : ""} />
+                <span className="relative z-10">Revelar Estrategia Mágica</span>
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none skew-y-12"></div>
+              </>
+            )}
           </button>
         </div>
+      </div>
 
-        {/* Reminder Section */}
-        <div className="mt-6 pt-5 border-t border-slate-100">
-            <button 
-                onClick={() => setShowReminder(!showReminder)}
-                className="flex items-center gap-2 text-slate-500 font-medium hover:text-blue-600 transition-colors text-sm w-full"
-            >
-                <Bell size={16} className={showReminder ? "fill-blue-100 text-blue-500" : ""} />
-                {showReminder ? 'Ocultar Recordatorio' : 'Establecer Recordatorio'}
-            </button>
+      {/* MAGICAL REMINDER CARD */}
+      <div className="bg-gradient-to-br from-white to-indigo-50/50 rounded-[24px] border border-indigo-100 p-1 relative overflow-hidden shadow-lg shadow-indigo-100/50 group">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 opacity-30"></div>
 
-            {showReminder && (
-                <div className="mt-4 bg-slate-50 p-4 rounded-xl animate-in fade-in slide-in-from-top-2">
-                    <div className="flex gap-3 mb-3">
-                        <div className="flex-1">
-                            <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">Fecha</label>
-                            <div className="relative">
-                                <Calendar className="absolute left-3 top-3 text-slate-400" size={16} />
-                                <input 
-                                    type="date" 
-                                    value={reminderDate}
-                                    onChange={(e) => setReminderDate(e.target.value)}
-                                    className="w-full pl-10 p-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-400"
-                                />
-                            </div>
-                        </div>
-                        <div className="w-1/3">
-                            <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">Hora</label>
-                            <input 
-                                type="time" 
-                                value={reminderTime}
-                                onChange={(e) => setReminderTime(e.target.value)}
-                                className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-400"
-                            />
-                        </div>
-                    </div>
-                    <button 
-                        onClick={handleSetReminder}
-                        disabled={reminderSet}
-                        className={`w-full py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${
-                            reminderSet 
-                            ? 'bg-green-100 text-green-700 border border-green-200' 
-                            : 'bg-white border border-slate-300 text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200'
-                        }`}
-                    >
-                        {reminderSet ? (
-                            <>
-                                <CheckCircle size={16} /> Recordatorio Activo
-                            </>
-                        ) : (
-                            <>
-                                Programar Alerta
-                            </>
-                        )}
-                    </button>
-                </div>
+        <div className="bg-white/60 backdrop-blur-md rounded-[20px] p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-indigo-100 p-2 rounded-xl text-indigo-600 group-hover:scale-110 transition-transform duration-300">
+              <Bell size={20} className="fill-indigo-200" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-slate-800 text-sm">No lo dejes a la suerte 🍀</h3>
+              <p className="text-xs text-slate-500">Programa el éxito de este seguimiento</p>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                <Calendar size={14} className="text-indigo-400" />
+              </div>
+              <input
+                type="date"
+                value={reminderDate}
+                onChange={(e) => setReminderDate(e.target.value)}
+                className="w-full pl-9 p-3 bg-white border border-indigo-50 rounded-xl text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 outline-none transition-all"
+              />
+            </div>
+            <div className="relative w-32">
+              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                <Clock size={14} className="text-indigo-400" />
+              </div>
+              <input
+                type="time"
+                value={reminderTime}
+                onChange={(e) => setReminderTime(e.target.value)}
+                className="w-full pl-9 p-3 bg-white border border-indigo-50 rounded-xl text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 outline-none transition-all"
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={handleSetReminder}
+            disabled={reminderSet}
+            className={`w-full mt-4 py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${reminderSet
+              ? 'bg-green-100 text-green-700 border border-green-200 shadow-none'
+              : 'bg-slate-900 text-white shadow-xl shadow-indigo-200 hover:shadow-indigo-300 hover:scale-[1.02] active:scale-95'
+              }`}
+          >
+            {reminderSet ? (
+              <>
+                <CheckCircle size={16} className="text-green-600" />
+                ¡Agendado & Guardado!
+              </>
+            ) : (
+              <>
+                <Bell size={16} />
+                Programar Recordatorio
+              </>
             )}
+          </button>
         </div>
       </div>
 
       {/* SKELETON LOADER */}
-      {loading && (
-        <div className="space-y-4 mt-6">
-             <h3 className="text-sm font-bold text-blue-500/50 uppercase tracking-wider mb-3 ml-1 animate-pulse">
-                Diseñando estrategia...
-            </h3>
+      {
+        loading && (
+          <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden h-24">
-                    <div className="space-y-3">
-                        <div className="h-4 bg-slate-100 rounded w-2/3"></div>
-                        <div className="h-3 bg-slate-50 rounded w-full"></div>
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent -translate-x-full animate-shimmer" style={{ animationDelay: `${i * 0.15}s` }}></div>
+              <div key={i} className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden h-28">
+                <div className="space-y-3">
+                  <div className="flex gap-2 mb-2">
+                    <div className="h-2 w-2 rounded-full bg-slate-200"></div>
+                    <div className="h-2 w-2 rounded-full bg-slate-200"></div>
+                    <div className="h-2 w-2 rounded-full bg-slate-200"></div>
+                  </div>
+                  <div className="h-4 bg-slate-100 rounded w-3/4"></div>
+                  <div className="h-4 bg-slate-100 rounded w-1/2"></div>
+                  <div className="h-10 w-full mt-4 bg-slate-50 rounded-lg"></div>
                 </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-shimmer" style={{ animationDelay: `${i * 0.15}s` }}></div>
+              </div>
             ))}
-        </div>
-      )}
+          </div>
+        )
+      }
 
-      {/* RESULTS */}
-      {!loading && results.length > 0 && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 ml-1">Mensajes Sugeridos</h3>
-          {results.map((script, idx) => (
-            <ActionCard 
-                key={idx} 
-                text={script} 
-                onCopy={onRecordAction}
-            />
-          ))}
-           <p className="text-xs text-center text-slate-400 mt-4">
-            La fortuna está en el seguimiento. Mantén la postura profesional.
-          </p>
-        </div>
-      )}
+      {/* RESULTS DISPLAY */}
+      {
+        !loading && results.length > 0 && (
+          <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-4">
 
-    </div>
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                <Sparkles size={16} className="text-amber-400" />
+                Opciones Generadas
+              </h3>
+              <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
+                3 Variaciones
+              </span>
+            </div>
+
+            <div className="grid gap-4">
+              {results.map((script, idx) => (
+                <div key={idx} className="animate-in slide-in-from-bottom-4" style={{ animationDelay: `${idx * 100}ms` }}>
+                  <ActionCard
+                    text={script}
+                    onCopy={() => {
+                      onRecordAction();
+                      setShowFeedback(true);
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {!showFeedback ? (
+              <div className="text-center p-2">
+                <p className="text-xs text-slate-400 animate-pulse">Copia un mensaje para registrar la acción</p>
+              </div>
+            ) : (
+              <div className="bg-slate-900 p-4 rounded-2xl text-white text-center animate-in zoom-in slide-in-from-bottom-2 shadow-xl ring-2 ring-emerald-400/20">
+                <p className="font-bold mb-3 text-lg">🚀 ¡Acción Detectada!</p>
+                <p className="text-sm text-slate-300 mb-4">¿Cuál fue el resultado?</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleResult('later')}
+                    className="flex-1 py-3 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors font-medium text-slate-300"
+                  >
+                    👀 Visto / Nada
+                  </button>
+                  <button
+                    onClick={() => handleResult('success')}
+                    className="flex-1 py-3 bg-emerald-500 rounded-xl font-bold shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 hover:scale-105 transition-all text-white flex items-center justify-center gap-2"
+                  >
+                    🔥 ¡Interesado!
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3 text-sm text-blue-800">
+              <AlertCircle className="shrink-0 text-blue-500" size={20} />
+              <p>
+                <strong className="font-bold">Pro Tip:</strong> La fortuna está en el seguimiento. No tengas miedo de ser "pesado" si tu intención es ayudar genuinamente.
+              </p>
+            </div>
+          </div>
+        )
+      }
+
+    </div >
   );
 };

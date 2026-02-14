@@ -1,422 +1,343 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  Camera, Instagram, Megaphone, CheckCircle2, Zap, Loader2, Sparkles, 
-  LifeBuoy, Copy, Check, RefreshCw, Palette, Target, Shield, Trophy, 
-  Magnet, Lightbulb, MousePointerClick, ArrowRight 
+import React, { useState, useEffect } from 'react';
+import {
+    Zap, Copy, CheckCircle2, Sparkles, Palette,
+    Megaphone, Check, Flame, ArrowRight, Lightbulb, Share2, ArrowLeft
 } from 'lucide-react';
-import { generateDailyPostIdea, generateHabitMessage, generateRescuePost } from '../services/geminiService';
+import { generateSocialPost, SocialStrategy } from '../services/geminiService';
+import { triggerMagic } from '../utils/magic';
+import { UserGoals } from '../types';
+import { VoiceInput } from '../components/VoiceInput';
+import { ActionCard } from '../components/ActionCard';
 
-// --- HELPER: CONFETTI & STYLES ---
-const Confetti = () => {
-    // Generate static random particles
-    const [particles] = useState(() => Array.from({ length: 40 }).map((_, i) => ({
-        id: i,
-        left: Math.random() * 100 + '%',
-        animationDelay: Math.random() * 2 + 's',
-        animationDuration: Math.random() * 2 + 2 + 's',
-        bg: ['bg-yellow-400', 'bg-purple-500', 'bg-blue-400', 'bg-red-400', 'bg-emerald-400'][Math.floor(Math.random() * 5)]
-    })));
+interface DailyPostViewProps {
+    onPostComplete?: (isRescue: boolean) => void;
+    goals: UserGoals;
+}
 
-    return (
-        <>
-            <style>
-                {`
-                @keyframes fall {
-                    0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
-                    100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
-                }
-                .animate-fall {
-                    animation: fall linear forwards;
-                }
-                `}
-            </style>
-            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-                {particles.map((p) => (
-                    <div 
-                        key={p.id}
-                        className={`absolute w-2 h-2 md:w-3 md:h-3 rounded-sm ${p.bg} animate-fall`}
-                        style={{
-                            left: p.left,
-                            top: '-20px',
-                            animationDelay: p.animationDelay,
-                            animationDuration: p.animationDuration
-                        }}
-                    />
-                ))}
-            </div>
-        </>
-    );
-};
+// --- STRATEGY ROTATION SYSTEM ---
+const DAILY_STRATEGIES = [
+    { day: 0, theme: "Planificación & Visión", hook: "La semana se gana antes de que empiece...", prompt: "Comparte TU META principal para esta semana.", icon: "🎯" },
+    { day: 1, theme: "Mentalidad de Líder", hook: "Lo que veo venir es gigante...", prompt: "Comparte tu VISIÓN sobre el futuro de tu equipo.", icon: "🧠" },
+    { day: 2, theme: "Producto & Resultado", hook: "No creerás lo que acaba de pasar...", prompt: "Cuenta un BENEFICIO clave o un testimonio.", icon: "✨" },
+    { day: 3, theme: "Estilo de Vida", hook: "Mi oficina de hoy se ve así...", prompt: "Muestra tu LIBERTAD: ¿Dónde estás hoy?", icon: "🌴" },
+    { day: 4, theme: "TBT (Historia)", hook: "Hace un año estaba...", prompt: "Muestra tu PROGRESO: ¿Cómo eras antes?", icon: "⏳" },
+    { day: 5, theme: "Valor Educativo", hook: "3 cosas que aprendí sobre...", prompt: "Enseña un TIP RÁPIDO de tu industria.", icon: "📚" },
+    { day: 6, theme: "Personal & Relax", hook: "Desconectando para reconectar...", prompt: "¿Qué haces para RECARGAR energía?", icon: "🔋" },
+];
 
-export const DailyPostView: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [plan, setPlan] = useState<{hook: string, idea: string, format: string, cta: string} | null>(null);
-  const [publishedStatus, setPublishedStatus] = useState<'IDLE' | 'YES' | 'RESCUE'>('IDLE');
-  const [wasRescue, setWasRescue] = useState(false);
-  const [habitMessage, setHabitMessage] = useState<string>('');
-  
-  // Rescue State
-  const [rescueData, setRescueData] = useState<{type: string, text: string, visual: string, objective: string} | null>(null);
-  const [loadingAction, setLoadingAction] = useState(false);
-  const [copiedRescue, setCopiedRescue] = useState(false);
+export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, goals }) => {
+    const [step, setStep] = useState(1); // Start directly at Step 1 (Input)
+    const [customContext, setCustomContext] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [strategy, setStrategy] = useState<SocialStrategy | null>(null);
+    const [copiedAll, setCopiedAll] = useState(false);
+    const [isCompleted, setIsCompleted] = useState(false);
 
-  useEffect(() => {
-    loadPlan();
-  }, []);
+    // Get Today's Strategy
+    const todayIndex = new Date().getDay();
+    const currentStrategy = DAILY_STRATEGIES.find(s => s.day === todayIndex) || DAILY_STRATEGIES[0];
 
-  const loadPlan = async () => {
-    setLoading(true);
-    const text = await generateDailyPostIdea();
-    if (text && text.includes('---')) {
-      const parts = text.split('---').map(p => p.trim());
-      const clean = (s: string) => s.replace(/^(1\.|2\.|3\.|4\.)\s*.*?:/i, '').trim();
-      
-      setPlan({
-        hook: clean(parts[0] || "Algo interesante..."),
-        idea: clean(parts[1] || "Muestra tu estilo de vida."),
-        format: clean(parts[2] || "Historia"),
-        cta: clean(parts[3] || "Escríbeme.")
-      });
-    } else {
-        setPlan({
-            hook: "Error de formato",
-            idea: text,
-            format: "Historia",
-            cta: "Reintenta"
-        });
-    }
-    setLoading(false);
-  };
+    const handleActivate = () => {
+        setStep(1);
+    };
 
-  const handleSuccess = async (fromRescue = false) => {
-    setLoadingAction(true);
-    // Add artificial delay for anticipation
-    await new Promise(r => setTimeout(r, 600));
-    
-    setWasRescue(fromRescue);
-    
-    // Scenario changes if it was a Rescue mission
-    const scenario = fromRescue ? 'RESCUE_WIN' : 'SUCCESS';
-    const message = await generateHabitMessage(scenario);
-    
-    setHabitMessage(message);
-    setPublishedStatus('YES');
-    setLoadingAction(false);
-  };
+    const handleGenerate = async () => {
+        setLoading(true);
+        setStrategy(null);
+        try {
+            // We pass the "Theme" as part of the context to enforce the strategy
+            const contextWithTheme = `ESTRATEGIA DEL DÍA: ${currentStrategy.theme}. HOOK OBLIGATORIO: "${currentStrategy.hook}". CONTEXTO USUARIO: ${customContext}`;
 
-  const handleRescueMode = async () => {
-    setLoadingAction(true);
-    const data = await generateRescuePost();
-    setRescueData(data);
-    setPublishedStatus('RESCUE');
-    setLoadingAction(false);
-  };
+            const result = await generateSocialPost('WhatsApp', 'Atraer', 'Profesional', goals.companyName, contextWithTheme, goals.productNiche);
+            setStrategy(result);
+            setStep(2);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  const handleCopyRescue = () => {
-    if(rescueData) {
-        navigator.clipboard.writeText(rescueData.text);
-        setCopiedRescue(true);
-        setTimeout(() => setCopiedRescue(false), 2000);
-    }
-  };
+    const handleComplete = () => {
+        if (!onPostComplete) return;
+        triggerMagic();
+        onPostComplete(false);
+        setIsCompleted(true);
+        setTimeout(() => { setIsCompleted(false); setStep(0); setCustomContext(''); }, 3000);
+    };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full min-h-[400px] space-y-6">
-        <div className="relative">
-            <div className="absolute inset-0 bg-indigo-500 blur-xl opacity-20 rounded-full animate-pulse"></div>
-            <div className="bg-white p-5 rounded-3xl shadow-lg relative z-10 border border-indigo-50">
-                <Sparkles className="text-indigo-600 animate-spin-slow" size={40} />
-            </div>
-        </div>
-        <div className="text-center space-y-2">
-            <h3 className="text-lg font-bold text-slate-700">Diseñando Estrategia...</h3>
-            <p className="text-slate-400 text-sm">Analizando tendencias de atracción</p>
-        </div>
-      </div>
-    );
-  }
+    const handleShareResult = async () => {
+        if (!strategy) return;
 
-  // --- SUCCESS STATE (ANIMATED) ---
-  if (publishedStatus === 'YES') {
-    const isRescue = wasRescue;
-    const mainColor = isRescue ? 'blue' : 'emerald';
-    
-    return (
-        <div className="flex flex-col items-center justify-center h-full min-h-[500px] animate-in zoom-in-95 duration-500 text-center p-6 bg-white rounded-3xl border border-slate-100 shadow-2xl relative overflow-hidden">
-            
-            <Confetti />
+        const shareText = `🔥 ¡Acabo de terminar mi estrategia de hoy!\n\nTema: ${currentStrategy.theme}\n🚀 ${strategy.mainPost.substring(0, 50)}...\n\nSigue tu propia estrategia aquí: https://mlm-action-partner.vercel.app`;
 
-            {/* Rotating Sunburst Background */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
-                 <div className={`w-[600px] h-[600px] bg-[conic-gradient(var(--tw-gradient-stops))] ${isRescue ? 'from-blue-500 via-transparent to-blue-500' : 'from-yellow-400 via-transparent to-yellow-400'} animate-[spin_10s_linear_infinite] rounded-full`}></div>
-            </div>
-            
-            {/* Content Container */}
-            <div className="relative z-10 flex flex-col items-center w-full">
-                
-                <div className="mb-6 relative">
-                    {/* Glowing Backlight */}
-                    <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 ${isRescue ? 'bg-blue-400' : 'bg-emerald-400'} rounded-full blur-3xl opacity-40 animate-pulse`}></div>
-                    
-                    {/* Icon */}
-                    <div className="animate-[bounce_2s_infinite]">
-                        {isRescue ? (
-                             <Shield className="text-blue-500 w-32 h-32 drop-shadow-2xl fill-white" strokeWidth={1.5} />
-                        ) : (
-                             <Trophy className="text-yellow-500 w-32 h-32 drop-shadow-2xl fill-yellow-100" strokeWidth={1.5} />
-                        )}
-                    </div>
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'Mi Estrategia del Día',
+                    text: shareText,
+                });
+            } catch (err) {
+                console.log('Error sharing', err);
+            }
+        } else {
+            navigator.clipboard.writeText(shareText);
+            alert('¡Enlace copiado! Compártelo con tu equipo.');
+        }
+    };
 
-                    {/* Badge */}
-                    <div className={`absolute -bottom-2 -right-2 bg-white text-${mainColor}-600 p-2 rounded-full shadow-lg animate-in zoom-in delay-300 duration-500`}>
-                        <CheckCircle2 size={32} className={`fill-${mainColor}-100`} />
-                    </div>
+    const handleCopyAll = () => {
+        if (!strategy) return;
+        let fullText = "";
+
+        // Prefer Video Script format if available for high engagement, otherwise main post
+        if (strategy.videoScript) {
+            fullText += `${strategy.videoScript.hook}\n\n${strategy.videoScript.body}\n\n${strategy.videoScript.cta}`;
+        } else {
+            fullText += `${strategy.mainPost}\n\n${strategy.cta}`;
+        }
+
+        if (strategy.imageHint) fullText += `\n\n📸 MISIÓN VISUAL:\n${strategy.imageHint}`;
+        navigator.clipboard.writeText(fullText);
+        setCopiedAll(true);
+        setTimeout(() => setCopiedAll(false), 2000);
+    };
+
+    // --- VIEW 0: ZEN MODE (POWER BUTTON) ---
+    if (step === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] animate-in fade-in duration-700">
+                <div className="relative group cursor-pointer" onClick={handleActivate}>
+                    <div className="absolute inset-0 bg-indigo-500 blur-[60px] opacity-20 group-hover:opacity-40 transition-opacity duration-500 rounded-full"></div>
+                    <button
+                        className="relative w-48 h-48 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-2xl shadow-indigo-300 flex flex-col items-center justify-center gap-2 transform transition-all duration-300 group-hover:scale-105 active:scale-95 border-4 border-indigo-400/30"
+                    >
+                        <Zap size={48} className="fill-white animate-pulse" />
+                        <span className="text-sm font-black tracking-widest uppercase">Activar Día</span>
+                    </button>
+
+                    {/* Ring Animation */}
+                    <div className="absolute inset-0 border-2 border-indigo-500/20 rounded-full animate-[ping_3s_ease-in-out_infinite]"></div>
                 </div>
 
-                <h2 className={`text-4xl font-black mb-3 tracking-tight ${isRescue ? 'text-blue-900' : 'text-slate-800'} animate-in slide-in-from-bottom-5 duration-700`}>
-                    {isRescue ? "¡RESILIENCIA!" : "¡MISIÓN CUMPLIDA!"}
-                </h2>
-                
-                <div className="mt-2 mb-8 max-w-xs mx-auto animate-in slide-in-from-bottom-5 delay-150 duration-700">
-                    <p className="text-slate-600 font-serif italic text-lg leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-sm">
-                        "{habitMessage}"
+                <div className="mt-12 text-center space-y-2">
+                    <h2 className="text-xl font-black text-slate-800 tracking-tight">
+                        {currentStrategy.icon} Hoy toca: <span className="text-indigo-600">{currentStrategy.theme}</span>
+                    </h2>
+                    <p className="text-sm text-slate-400 font-medium max-w-xs mx-auto">
+                        Tu estrategia ya está lista. Solo pulsa el botón.
                     </p>
                 </div>
+            </div>
+        );
+    }
 
-                {isRescue && (
-                     <div className="bg-blue-50 border border-blue-100 text-blue-800 px-5 py-3 rounded-full text-sm font-bold mb-8 flex items-center gap-2 animate-in fade-in delay-300">
-                        <Zap size={16} className="text-blue-500 fill-blue-500" />
-                        <span>Racha Salvada (+XP Doble)</span>
-                     </div>
+    // --- VIEW 1: INPUT CONTEXT ---
+    if (step === 1) {
+        return (
+            <div className="max-w-xl mx-auto pt-4 pb-20 animate-in slide-in-from-bottom duration-500 px-4">
+                <button onClick={() => setStep(0)} className="mb-6 text-slate-400 hover:text-indigo-600 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                    <ArrowLeft size={16} /> Cancelar
+                </button>
+
+                <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[40px] shadow-2xl shadow-indigo-200/50 border border-white/40 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+                        <Flame size={120} />
+                    </div>
+
+                    <div className="relative z-10">
+                        {/* Header Badge */}
+                        <div className="flex items-center gap-3 mb-6 bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
+                            <span className="text-3xl">{currentStrategy.icon}</span>
+                            <div>
+                                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Misión de Hoy</p>
+                                <h3 className="text-lg font-black text-indigo-900 leading-tight">
+                                    {currentStrategy.theme}
+                                </h3>
+                            </div>
+                        </div>
+
+                        {/* Step 1: Hook */}
+                        <div className="relative">
+                            <div className="absolute -left-3 top-6 bottom-0 w-0.5 bg-indigo-100 hidden sm:block"></div>
+                            <div className="bg-white border-2 border-indigo-100 rounded-3xl p-5 mb-2 relative">
+                                <span className="absolute -top-3 left-4 bg-indigo-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
+                                    Paso 1
+                                </span>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2 mb-2">
+                                    Empieza con esta frase:
+                                </p>
+                                <div className="flex items-center gap-3 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100/50">
+                                    <p className="text-lg font-bold text-indigo-900 italic flex-1">
+                                        "{currentStrategy.hook}"
+                                    </p>
+                                    <button
+                                        onClick={() => navigator.clipboard.writeText(currentStrategy.hook)}
+                                        className="p-2 bg-white rounded-full text-indigo-500 shadow-sm hover:scale-110 active:scale-95 transition-all"
+                                        title="Copiar frase"
+                                    >
+                                        <Copy size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Arrow Connector */}
+                        <div className="flex justify-center -my-3 relative z-20">
+                            <div className="bg-white p-1 rounded-full border border-indigo-50 text-indigo-300">
+                                <ArrowRight size={20} className="rotate-90" />
+                            </div>
+                        </div>
+
+                        {/* Step 2: Input */}
+                        <div className="relative mb-6">
+                            <div className="bg-white border-2 border-slate-100 rounded-3xl p-5 pt-8 mt-2 relative shadow-sm">
+                                <span className="absolute -top-3 left-4 bg-slate-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
+                                    Paso 2
+                                </span>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">
+                                    Completa la idea ({currentStrategy.prompt}):
+                                </label>
+
+                                <div className="relative group">
+                                    <textarea
+                                        value={customContext}
+                                        onChange={(e) => setCustomContext(e.target.value)}
+                                        placeholder="Escribe aquí tu parte de la historia..."
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 h-24 text-slate-700 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 transition-all resize-none text-base font-medium placeholder:text-slate-300"
+                                        autoFocus
+                                    />
+                                    <div className="absolute bottom-3 right-3">
+                                        <VoiceInput onTranscript={(t) => setCustomContext(prev => prev ? `${prev} ${t}` : t)} />
+                                    </div>
+                                </div>
+
+                                {/* Context Chips */}
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                    {[
+                                        { label: '☕ Café con prospecto', text: 'Tomando un café con un futuro líder.' },
+                                        { label: '💻 Zoom de equipo', text: 'Conectado con el equipo en un entrenamiento épico.' },
+                                        { label: '📖 Aprendizaje', text: 'Aprendiendo nuevas estrategias de crecimiento.' },
+                                        { label: '🚀 Lanzamiento', text: 'Preparando algo gigante para esta semana.' },
+                                        { label: '🔥 Momento On', text: 'Enfocado y listo para el siguiente nivel.' }
+                                    ].map(chip => (
+                                        <button
+                                            key={chip.label}
+                                            onClick={() => setCustomContext(prev => prev ? `${prev} ${chip.text}` : chip.text)}
+                                            className="text-[10px] font-bold bg-white border border-slate-200 text-slate-500 px-3 py-1.5 rounded-full hover:border-indigo-300 hover:text-indigo-600 transition-all active:scale-90"
+                                        >
+                                            {chip.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Step 3: Action */}
+                        <button
+                            onClick={handleGenerate}
+                            disabled={loading || !customContext.trim()}
+                            className={`w-full py-4 rounded-2xl font-black text-white shadow-xl transition-all flex flex-col items-center justify-center gap-1 uppercase tracking-widest text-sm relative overflow-hidden group ${loading || !customContext.trim()
+                                ? 'bg-slate-300 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:scale-[1.02] active:scale-95 shadow-indigo-200'
+                                }`}
+                        >
+                            {loading && <div className="absolute inset-0 bg-white/20 animate-pulse" />}
+                            {loading ? (
+                                <span>Mezclando Ingredientes...</span>
+                            ) : (
+                                <>
+                                    <div className="flex items-center gap-2">
+                                        ¡Mezclar y Crear Magia! <Sparkles size={18} className="group-hover:rotate-12 transition-transform" />
+                                    </div>
+                                    <span className="text-xs opacity-90 normal-case font-bold">La IA unirá todo en un Post perfecto</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // --- VIEW 2: RESULTS (HIGH IMPACT) ---
+    if (step === 2 && strategy) {
+        return (
+            <div className="max-w-xl mx-auto pt-20 pb-20 animate-in slide-in-from-right duration-500 px-4">
+                {/* Visual Mission Card */}
+                <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-[24px] p-5 text-white shadow-2xl shadow-indigo-200 mb-4 relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="p-1.5 bg-white/10 rounded-lg backdrop-blur-sm">
+                                <Palette size={16} className="text-amber-400" />
+                            </div>
+                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-200">
+                                Misión Visual
+                            </span>
+                        </div>
+                        <p className="text-base font-bold leading-relaxed">
+                            {strategy.imageHint}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Content Card */}
+                <div className="bg-white/80 backdrop-blur-xl rounded-[32px] border border-white/50 shadow-xl p-6 mb-6 relative overflow-hidden">
+                    <div className="flex justify-between items-center mb-4 relative z-10">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                            Tu Copy
+                        </span>
+                        <button
+                            onClick={handleCopyAll}
+                            className={`text-[10px] font-black uppercase px-4 py-2 rounded-full transition-all flex items-center gap-2 ${copiedAll ? 'bg-emerald-500 text-white' : 'bg-white/50 border border-white/40 text-slate-500 hover:bg-white'
+                                }`}
+                        >
+                            {copiedAll ? <Check size={14} /> : <Copy size={14} />}
+                            {copiedAll ? '¡Copiado!' : 'Copiar Texto'}
+                        </button>
+                    </div>
+
+                    <div className="prose prose-sm max-w-none relative z-10">
+                        <ActionCard text={`${strategy.mainPost}\n\n${strategy.cta}`} />
+                    </div>
+                </div>
+
+                {/* Finish Button */}
+                <button
+                    onClick={handleComplete}
+                    disabled={isCompleted}
+                    className={`w-full py-5 rounded-[24px] font-black text-white shadow-xl transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-sm ${isCompleted
+                        ? 'bg-emerald-500 scale-95 ring-4 ring-emerald-200'
+                        : 'bg-indigo-600 hover:bg-indigo-700 hover:-translate-y-1 shadow-indigo-200'
+                        }`}
+                >
+                    {isCompleted ? (
+                        <>
+                            <CheckCircle2 size={20} /> ¡Día Completado!
+                        </>
+                    ) : (
+                        <>
+                            <Megaphone size={20} /> Publicar y Ganar XP
+                        </>
+                    )}
+                </button>
+
+                {isCompleted && (
+                    <button
+                        onClick={handleShareResult}
+                        className="w-full mt-4 py-3 rounded-[20px] bg-slate-100 text-slate-600 font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors animate-in fade-in slide-in-from-bottom duration-500"
+                    >
+                        <Share2 size={16} /> Compartir Logro
+                    </button>
                 )}
 
-                <button 
-                    onClick={() => setPublishedStatus('IDLE')} 
-                    className="mt-4 py-3 px-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 hover:text-slate-800 transition-all flex items-center gap-2 group active:scale-95"
-                >
-                    Volver al plan
-                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform"/>
+                <button onClick={() => setStep(0)} className="w-full text-center mt-6 text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600">
+                    Volver al Inicio
                 </button>
             </div>
-        </div>
-    );
-  }
+        );
+    }
 
-  // --- RESCUE (VIP MODE) STATE ---
-  if (publishedStatus === 'RESCUE' && rescueData) {
-    return (
-        <div className="flex flex-col h-full animate-in slide-in-from-bottom duration-500 pb-4">
-            
-            {/* VIP Card Header */}
-            <div className="flex items-center justify-between mb-4 px-2">
-                <div className="flex items-center gap-2">
-                    <div className="bg-slate-900 p-2 rounded-lg text-white">
-                        <Zap size={18} fill="currentColor" />
-                    </div>
-                    <div>
-                        <h2 className="text-lg font-bold text-slate-800 leading-none">Flash Mode</h2>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ejecución Inmediata</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Dark Mode Card */}
-            <div className="bg-slate-900 rounded-[2rem] p-6 text-white shadow-2xl shadow-slate-300 relative overflow-hidden flex-1 flex flex-col justify-between group">
-                
-                {/* Texture/Noise Overlay */}
-                <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
-                
-                {/* Glows */}
-                <div className="absolute -top-20 -right-20 w-64 h-64 bg-indigo-500/30 rounded-full blur-3xl"></div>
-                <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-fuchsia-500/20 rounded-full blur-3xl"></div>
-
-                {/* Badge */}
-                <div className="relative z-10 flex justify-end">
-                    <span className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest text-indigo-200 border border-white/10 shadow-sm">
-                        {rescueData.type}
-                    </span>
-                </div>
-
-                {/* THE CONTENT */}
-                <div className="relative z-10 my-4">
-                    <p className="text-2xl font-serif font-medium leading-relaxed text-white/95">
-                        {rescueData.text}
-                    </p>
-                </div>
-
-                {/* Analysis Section */}
-                <div className="space-y-3 relative z-10">
-                    {/* Objective */}
-                    <div className="bg-indigo-900/40 border border-indigo-500/30 p-3 rounded-xl backdrop-blur-sm">
-                        <div className="flex items-center gap-2 mb-1">
-                            <Target size={14} className="text-indigo-300" />
-                            <span className="text-[10px] uppercase font-bold text-indigo-300">Objetivo Psicológico</span>
-                        </div>
-                        <p className="text-xs text-indigo-100 font-light italic">
-                            "{rescueData.objective}"
-                        </p>
-                    </div>
-
-                    {/* Visual Instruction */}
-                    <div className="flex items-start gap-3 pl-1">
-                        <Palette size={16} className="text-fuchsia-400 shrink-0 mt-0.5" />
-                        <div>
-                            <p className="text-[10px] uppercase font-bold text-slate-400">Instrucción Visual</p>
-                            <p className="text-xs text-slate-300 font-medium">{rescueData.visual}</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Floating Action Buttons inside Card */}
-                <div className="flex gap-3 mt-6 relative z-10">
-                     <button 
-                        onClick={handleCopyRescue}
-                        className="flex-1 bg-white text-slate-900 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 active:scale-95 hover:bg-slate-200 shadow-lg"
-                    >
-                        {copiedRescue ? <Check size={18} className="text-green-600"/> : <Copy size={18} />}
-                        {copiedRescue ? 'Copiado' : 'Copiar Texto'}
-                    </button>
-                    <button 
-                        onClick={() => handleRescueMode()}
-                        className="p-3 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-colors border border-white/10 active:rotate-180 duration-500"
-                        title="Generar otra opción"
-                        disabled={loadingAction}
-                    >
-                        <RefreshCw size={20} className={loadingAction ? "animate-spin" : ""} />
-                    </button>
-                </div>
-            </div>
-
-            {/* Bottom Complete Button */}
-            <div className="mt-4 px-2">
-                <button 
-                    onClick={() => handleSuccess(true)} 
-                    className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-600 active:scale-95 transition-all flex items-center justify-center gap-2"
-                >
-                    {loadingAction ? <Loader2 className="animate-spin" /> : <Trophy size={20} className="text-emerald-100" />}
-                    {loadingAction ? 'Guardando...' : 'Completar Misión Flash'}
-                </button>
-                 <button 
-                    onClick={() => setPublishedStatus('IDLE')}
-                    className="w-full text-center text-slate-400 text-xs mt-3 underline hover:text-slate-600"
-                >
-                    Cancelar
-                </button>
-            </div>
-        </div>
-    );
-  }
-
-  // --- DEFAULT PLAN STATE (BLUEPRINT) ---
-  return (
-    <div className="space-y-5 animate-in slide-in-from-right duration-500 pb-10">
-      
-      {/* Header with Date */}
-      <div className="flex items-center justify-between px-1">
-        <div>
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Estrategia Viral</h2>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">
-                {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric' })}
-            </p>
-        </div>
-        <div className="bg-gradient-to-tr from-indigo-500 to-purple-600 p-2.5 rounded-xl text-white shadow-lg shadow-indigo-200">
-            <Megaphone size={20} fill="currentColor" className="text-white/20" stroke="white" />
-        </div>
-      </div>
-
-      {/* The Blueprint Card */}
-      {plan && (
-          <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/60 overflow-hidden border border-slate-100 relative group">
-            
-            {/* Format Tag */}
-            <div className="absolute top-0 right-0 bg-slate-900 text-white text-[10px] font-bold px-4 py-2 rounded-bl-2xl uppercase tracking-wider z-10 flex items-center gap-1.5">
-                <Camera size={12} />
-                {plan.format}
-            </div>
-
-            <div className="p-1">
-                {/* 1. THE HOOK (Hero Section) */}
-                <div className="bg-gradient-to-br from-indigo-50 to-white p-6 pb-8 rounded-t-[1.8rem]">
-                    <div className="flex items-center gap-2 mb-3">
-                        <div className="bg-indigo-100 p-1.5 rounded-lg text-indigo-600">
-                            <Magnet size={16} />
-                        </div>
-                        <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Gancho de Atención</span>
-                    </div>
-                    <p className="text-2xl font-serif font-bold text-slate-800 leading-tight">
-                        "{plan.hook}"
-                    </p>
-                </div>
-
-                {/* 2. THE CORE IDEA (Middle) */}
-                <div className="px-6 -mt-4 relative z-10">
-                    <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm">
-                        <div className="flex items-center gap-2 mb-2">
-                             <div className="bg-amber-100 p-1.5 rounded-lg text-amber-600">
-                                <Lightbulb size={16} />
-                            </div>
-                            <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Contenido de Valor</span>
-                        </div>
-                        <p className="text-slate-600 text-sm font-medium leading-relaxed">
-                            {plan.idea}
-                        </p>
-                    </div>
-                </div>
-
-                {/* 3. THE CTA (Bottom) */}
-                <div className="p-6 pt-4">
-                     <div className="flex items-center gap-2 mb-2 ml-1">
-                        <MousePointerClick size={14} className="text-emerald-500" />
-                        <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Llamada a la Acción</span>
-                    </div>
-                    <div className="bg-emerald-50/50 border-l-4 border-emerald-400 pl-4 py-2 rounded-r-xl">
-                        <p className="text-lg font-bold text-slate-700">
-                            {plan.cta}
-                        </p>
-                    </div>
-                </div>
-            </div>
-          </div>
-      )}
-
-      {/* Action Dock */}
-      <div className="pt-2">
-        {loadingAction ? (
-             <div className="flex justify-center py-6"><Loader2 className="animate-spin text-indigo-500" /></div>
-        ) : (
-            <div className="flex gap-3">
-                {/* Rescue Button (Left) */}
-                <button 
-                    onClick={() => handleRescueMode()}
-                    className="group relative overflow-hidden bg-slate-800 text-white p-4 rounded-2xl font-bold transition-all active:scale-95 flex-none w-1/3 flex flex-col items-center justify-center gap-1 shadow-lg shadow-slate-300"
-                >
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/50 to-purple-600/50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <LifeBuoy size={22} className="relative z-10 text-indigo-200 group-hover:rotate-12 transition-transform duration-300" />
-                    <span className="text-[10px] uppercase font-bold tracking-wider relative z-10 text-indigo-100">Flash</span>
-                </button>
-
-                {/* Success Button (Right - Main) */}
-                <button 
-                    onClick={() => handleSuccess(false)}
-                    className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white p-4 rounded-2xl font-bold transition-all shadow-lg shadow-emerald-200 active:scale-95 flex items-center justify-between group border-b-4 border-emerald-700 hover:border-emerald-600 active:border-b-0 active:translate-y-1"
-                >
-                    <div className="text-left">
-                        <span className="block text-xs font-medium text-emerald-100 mb-0.5">Misión Cumplida</span>
-                        <span className="block text-lg">Ya Publiqué</span>
-                    </div>
-                    <div className="bg-white/20 p-2 rounded-xl group-hover:bg-white/30 transition-colors">
-                        <Check size={24} />
-                    </div>
-                </button>
-            </div>
-        )}
-        
-        <p className="text-[10px] text-center text-slate-400 mt-4 font-medium tracking-wide">
-            "La consistencia vence al talento."
-        </p>
-      </div>
-
-    </div>
-  );
+    return null;
 };
