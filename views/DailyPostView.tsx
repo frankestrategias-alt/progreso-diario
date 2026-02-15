@@ -69,7 +69,9 @@ export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, go
     const handleShareResult = async () => {
         if (!strategy) return;
 
-        const shareText = `🔥 ¡Acabo de terminar mi estrategia de hoy!\n\nTema: ${currentStrategy.theme}\n🚀 ${strategy.mainPost.substring(0, 50)}...\n\nSigue tu propia estrategia aquí: https://mlm-action-partner.vercel.app`;
+        const shareUrl = window.location.origin;
+        const promoText = `\n\n🚀 Creado con MLM Progreso Diario: ${shareUrl}`;
+        const shareText = `🔥 ¡Acabo de terminar mi estrategia de hoy!\n\nTema: ${currentStrategy.theme}\n🚀 ${strategy.mainPost.substring(0, 50)}...${promoText}`;
 
         if (navigator.share) {
             try {
@@ -318,7 +320,7 @@ export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, go
                         </>
                     ) : (
                         <>
-                            <Megaphone size={20} /> Publicar y Ganar XP
+                            <Megaphone size={20} /> Publicar y Ganar Puntos
                         </>
                     )}
                 </button>

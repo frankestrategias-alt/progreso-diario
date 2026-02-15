@@ -22,7 +22,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, onBack, showBac
             <ArrowLeft size={24} />
           </button>
         )}
-        <h1 className="text-xl font-black text-slate-800 truncate flex-1 tracking-tight">{title || 'Networker Pro'}</h1>
+        <h1 className="text-xl font-black text-slate-800 truncate flex-1 tracking-tight">{title || 'MLM Progreso Diario'}</h1>
         {rightContent && (
           <div className="flex items-center gap-2">
             {rightContent}

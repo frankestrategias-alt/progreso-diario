@@ -38,6 +38,26 @@ function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboardingSeen'));
 
+  // FORCE CACHE CLEANING (VERSIONING)
+  const APP_VERSION = '1.2.0'; // Increment this to force update
+  useEffect(() => {
+    const savedVersion = localStorage.getItem('appVersion');
+    if (savedVersion !== APP_VERSION) {
+      // Version mismatch: Clear potential corrupt data or old cache
+      console.log('New version detected. Cleaning cache...');
+
+      // Optional: Keep critical data if structured correctly, but for this fix we might want to be aggressive 
+      // or just trust the migration logic we just added. 
+      // Let's just update the version so migration logic runs.
+      localStorage.setItem('appVersion', APP_VERSION);
+
+      // If we want to be nuclear:
+      // localStorage.clear(); 
+      // localStorage.setItem('appVersion', APP_VERSION);
+      // window.location.reload();
+    }
+  }, []);
+
   // History Management
   useEffect(() => {
     // Handle browser back button
@@ -71,7 +91,16 @@ function App() {
 
   const [gamification, setGamification] = useState<GamificationState>(() => {
     const saved = localStorage.getItem('gamification');
-    return saved ? JSON.parse(saved) : DEFAULT_GAMIFICATION;
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // MIGRATION: If we have 'xp' but not 'points' (legacy data), migrate it.
+      if (parsed.points === undefined && parsed.xp !== undefined) {
+        return { ...DEFAULT_GAMIFICATION, ...parsed, points: parsed.xp };
+      }
+      // SAFETY: Ensure points is a number
+      return { ...DEFAULT_GAMIFICATION, ...parsed, points: Number(parsed.points) || 0 };
+    }
+    return DEFAULT_GAMIFICATION;
   });
 
   const [showLevelUp, setShowLevelUp] = useState<{ level: number, title: string } | null>(null);
@@ -120,20 +149,25 @@ function App() {
 
     // Mission Assignment (Ensure it runs even if progress was already updated today)
     setGamification(prev => {
+      // Ensure points is safe
+      const currentPoints = Number(prev.points) || 0;
+
       if (!prev.currentMission || prev.lastActiveDate !== today) {
         const randomMission = MISSIONS[Math.floor(Math.random() * MISSIONS.length)];
         return {
           ...prev,
+          points: currentPoints, // Safety update
           currentMission: { ...randomMission, completed: false }
         };
       }
-      return prev;
+      return { ...prev, points: currentPoints };
     });
   }, []);
 
-  const addXp = (amount: number) => {
+  const addPoints = (amount: number) => {
     setGamification(prev => {
-      const newXp = prev.xp + amount;
+      const currentPoints = Number(prev.points) || 0; // Safety against NaN
+      const newPoints = currentPoints + amount;
       const today = new Date().toISOString().split('T')[0];
 
       // Calculate Level
@@ -141,7 +175,7 @@ function App() {
       let newTitle = "";
 
       for (const l of LEVELS) {
-        if (newXp >= l.minXp) {
+        if (newPoints >= l.minPoints) {
           newLevel = l.level;
           newTitle = l.title;
         }
@@ -163,7 +197,7 @@ function App() {
 
       return {
         ...prev,
-        xp: newXp,
+        points: newPoints,
         level: newLevel,
         streak: newStreak,
         lastActiveDate: today
@@ -173,11 +207,17 @@ function App() {
 
   const completeMission = () => {
     if (gamification.currentMission && !gamification.currentMission.completed) {
-      setGamification(prev => ({
-        ...prev,
-        currentMission: prev.currentMission ? { ...prev.currentMission, completed: true } : undefined
-      }));
-      addXp(gamification.currentMission.xpReward);
+      const reward = Number(gamification.currentMission.pointsReward) || 0; // Validate reward
+      addPoints(reward);
+
+      setGamification(prev => {
+        if (!prev.currentMission) return prev;
+        return {
+          ...prev,
+          currentMission: { ...prev.currentMission, completed: true }
+        };
+      });
+
       confetti({
         particleCount: 150,
         spread: 100,
@@ -207,7 +247,7 @@ function App() {
 
       return { ...prev, contactsMade: newContacts, history: newHistory };
     });
-    addXp(10); // +10 XP for Contact
+    addPoints(10); // +10 Puntos for Contact
   };
 
   const handleRecordFollowUp = () => {
@@ -230,16 +270,16 @@ function App() {
 
       return { ...prev, followUpsMade: newFollowUps, history: newHistory };
     });
-    addXp(5); // +5 XP for FollowUp
+    addPoints(5); // +5 Puntos for FollowUp
   };
 
-  // Pass addXp to DailyPostView via props if needed, or handle it inside the view by passing a handler
+  // Pass addPoints to DailyPostView via props if needed, or handle it inside the view by passing a handler
   const handleRecordPost = (isRescue: boolean) => {
     setProgress(prev => ({
       ...prev,
       postsMade: (prev.postsMade || 0) + 1
     }));
-    addXp(isRescue ? 50 : 20); // +20 XP for normal post, +50 for rescue
+    addPoints(isRescue ? 50 : 20); // +20 Puntos for normal post, +50 for rescue
 
     // Trigger confetti
     confetti({
@@ -291,7 +331,7 @@ function App() {
       rightContent={view === 'HOME' && (
         <button
           onClick={() => setShowHelp(true)}
-          className="group p-2.5 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white transition-all active:scale-90 hover:scale-110 border border-amber-300/30"
+          className="group p-2.5 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white transition-all duration-300 active:scale-95 animate-[bounce_2s_infinite] shadow-lg shadow-orange-500/30 border border-amber-300/30"
           title="Ayuda / Tutorial"
         >
           <HelpCircle size={22} className="group-hover:rotate-12 transition-transform" />
@@ -301,26 +341,32 @@ function App() {
       {renderView()}
 
       {/* Help Modal */}
-      {showHelp && (
-        <HelpModal onClose={() => setShowHelp(false)} />
-      )}
+      {
+        showHelp && (
+          <HelpModal onClose={() => setShowHelp(false)} />
+        )
+      }
 
       {/* Level Up Modal */}
-      {showLevelUp && (
-        <LevelUpModal
-          level={showLevelUp.level}
-          title={showLevelUp.title}
-          onClose={() => setShowLevelUp(null)}
-        />
-      )}
+      {
+        showLevelUp && (
+          <LevelUpModal
+            level={showLevelUp.level}
+            title={showLevelUp.title}
+            onClose={() => setShowLevelUp(null)}
+          />
+        )
+      }
       {/* Onboarding Flow */}
-      {showOnboarding && (
-        <Onboarding onComplete={() => {
-          localStorage.setItem('onboardingSeen', 'true');
-          setShowOnboarding(false);
-        }} />
-      )}
-    </Layout>
+      {
+        showOnboarding && (
+          <Onboarding onComplete={() => {
+            localStorage.setItem('onboardingSeen', 'true');
+            setShowOnboarding(false);
+          }} />
+        )
+      }
+    </Layout >
   );
 }
 

@@ -109,7 +109,7 @@ export const StatsView: React.FC<StatsViewProps> = ({ progress, goals, onBack })
                     const totalWeekly = (Object.values(history) as any[]).reduce((acc: number, curr: any) => acc + (curr.contacts || 0) + (curr.followUps || 0), 0);
                     const topDay = Math.max(...(Object.values(history) as any[]).map((h: any) => (h.contacts || 0) + (h.followUps || 0)), 0);
 
-                    const shareText = `📊 *Mi Reporte Semanal de Ejecución* 📈\n\n🏆 Total Acciones: ${totalWeekly}\n🔥 Mejor Día: ${topDay} acciones\n🏢 Compañía: ${goals.companyName || 'MLM'}\n\n¡La consistencia es la madre del éxito! Sigue adelante. 💪🚀\n\nGenerado con: https://mlm-action-partner.vercel.app`;
+                    const shareText = `📊 *Mi Reporte Semanal de Ejecución* 📈\n\n🏆 Total Acciones: ${totalWeekly}\n🔥 Mejor Día: ${topDay} acciones\n🏢 Compañía: ${goals.companyName || 'MLM'}\n\n¡La consistencia es la madre del éxito! Sigue adelante. 💪🚀\n\nGenerado con: ${window.location.origin}`;
 
                     if (navigator.share) {
                         navigator.share({

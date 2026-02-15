@@ -7,26 +7,26 @@ interface HelpModalProps {
 
 const STEPS = [
     {
-        title: "Tu Mentor de Bolsillo",
-        desc: "Olvídate de pensar qué decir. Esta app crea los guiones perfectos para ti en segundos.",
+        title: "Tu Mentor de Bolsillo 🤖",
+        desc: "Olvídate de la improvisación. La Inteligencia Artificial trabaja por ti creando guiones probados que generan resultados.",
         icon: <Zap size={48} className="text-amber-500" />,
         color: "bg-amber-50"
     },
     {
-        title: "Paso 1: Contactar",
-        desc: "Rompe el hielo sin miedo. Usa el generador de IA para iniciar conversaciones naturales.",
+        title: "Paso 1: Rompe el Hielo ❄️",
+        desc: "Inicia conversaciones profesionales sin miedo al rechazo. Usa los guiones de invitación para despertar curiosidad genuina.",
         icon: <MessageCircle size={48} className="text-emerald-500" />,
         color: "bg-emerald-50"
     },
     {
-        title: "Paso 2: Seguimiento",
-        desc: "El dinero está en el seguimiento. La app recuerda a quién escribirle hoy.",
+        title: "Paso 2: Seguimiento Efectivo 🎯",
+        desc: "El dinero está en el seguimiento. Gestiona tu lista de prospectos y cierra más ventas de forma ordenada y profesional.",
         icon: <CheckCircle2 size={48} className="text-blue-500" />,
         color: "bg-blue-50"
     },
     {
-        title: "Paso 3: Publicar",
-        desc: "Marketing de Atracción hecho fácil. Copia y pega estrategias virales cada mañana.",
+        title: "Paso 3: Atracción Masiva 📢",
+        desc: "Deja de perseguir. Crea contenido magnético en segundos y atrae líderes a tu equipo con estrategias de marketing probadas.",
         icon: <Megaphone size={48} className="text-purple-500" />,
         color: "bg-purple-50"
     }

@@ -28,17 +28,17 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             color: "from-amber-400 to-orange-500"
         },
         {
-            title: "Controla tu Progreso",
-            description: "Registra tus acciones diarias, sube de nivel y mira cómo crecen tus estadísticas semana a semana.",
+            title: "Resultados Imparables 🏆",
+            description: "No trabajes a ciegas. Rastrea tus acciones, rompe tus propios récords y asegura tu éxito diario.",
             icon: <Trophy className="text-emerald-500" size={48} />,
             color: "from-emerald-400 to-teal-500"
         },
         {
-            title: "Configura tu Negocio",
-            description: "Para darte las mejores estrategias, necesito saber en qué industria te mueves.",
+            title: "Duplica Tu Producción 💎",
+            description: "La herramienta definitiva para firmar más socios, subir de rango y duplicar tu equipo.",
             icon: <Rocket className="text-indigo-500" size={48} />,
             color: "from-indigo-400 to-purple-500",
-            isForm: true
+            isForm: false
         }
     ];
 
@@ -48,7 +48,8 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         if (step < steps.length) {
             setStep(step + 1);
         } else {
-            onComplete(company, niche);
+            // Default values since we removed the form
+            onComplete("Mi Negocio", "Salud y Bienestar");
         }
     };
 
@@ -75,34 +76,9 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                         {currentStep.title}
                     </h2>
 
-                    {!currentStep.isForm ? (
-                        <p className="text-slate-500 font-medium leading-relaxed mb-10">
-                            {currentStep.description}
-                        </p>
-                    ) : (
-                        <div className="space-y-4 mb-8 text-left">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Tu Compañía</label>
-                                <input
-                                    type="text"
-                                    value={company}
-                                    onChange={(e) => setCompany(e.target.value)}
-                                    placeholder="Ej: Herbalife, Amway..."
-                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Tu Industria</label>
-                                <select
-                                    value={niche}
-                                    onChange={(e) => setNiche(e.target.value)}
-                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                                >
-                                    {niches.map(n => <option key={n} value={n}>{n}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                    )}
+                    <p className="text-slate-500 font-medium leading-relaxed mb-10 whitespace-pre-line">
+                        {currentStep.description}
+                    </p>
 
                     <button
                         onClick={nextStep}

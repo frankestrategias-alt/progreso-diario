@@ -29,7 +29,7 @@ export const DEFAULT_GOALS: UserGoals = {
 };
 
 export interface GamificationState {
-  xp: number;
+  points: number;
   level: number;
   streak: number;
   lastActiveDate: string;
@@ -37,21 +37,21 @@ export interface GamificationState {
   currentMission?: {
     id: string;
     description: string;
-    xpReward: number;
+    pointsReward: number;
     completed: boolean;
   };
 }
 
 export const LEVELS = [
-  { level: 1, minXp: 0, title: "Aprendiz" },
-  { level: 2, minXp: 100, title: "Ejecutivo" },
-  { level: 3, minXp: 300, title: "Líder de Equipo" },
-  { level: 4, minXp: 600, title: "Top Earner" },
-  { level: 5, minXp: 1000, title: "Leyenda" },
+  { level: 1, minPoints: 0, title: "Aprendiz" },
+  { level: 2, minPoints: 100, title: "Ejecutivo" },
+  { level: 3, minPoints: 300, title: "Líder de Equipo" },
+  { level: 4, minPoints: 600, title: "Top Earner" },
+  { level: 5, minPoints: 1000, title: "Leyenda" },
 ];
 
 export const DEFAULT_GAMIFICATION: GamificationState = {
-  xp: 0,
+  points: 0,
   level: 1,
   streak: 0,
   lastActiveDate: '',

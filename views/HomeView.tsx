@@ -67,12 +67,21 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
   const totalGoals = goals.dailyContacts + goals.dailyFollowUps + (goals.dailyPosts || 1);
   const overallPercentage = Math.min(100, Math.round((totalActions / totalGoals) * 100));
 
+  const currentPoints = Number(gamification.points) || 0;
   const currentLevelData = LEVELS.find(l => l.level === gamification.level) || LEVELS[0];
-  const nextLevelData = LEVELS.find(l => l.level === gamification.level + 1);
-  const xpForNextLevel = nextLevelData ? nextLevelData.minXp : gamification.xp * 1.5;
-  const xpProgress = Math.round(Math.min(100, Math.max(0, ((gamification.xp - currentLevelData.minXp) / (xpForNextLevel - currentLevelData.minXp)) * 100)));
+  const currentMinPoints = Number(currentLevelData.minPoints) || 0;
 
-  const shareText = `🚀 *Mi Progreso de Hoy*\n\n✅ Contactos: ${progress.contactsMade}/${goals.dailyContacts}\n🔄 Seguimientos: ${progress.followUpsMade}/${goals.dailyFollowUps}\n📢 Posts: ${progress.postsMade || 0}/${goals.dailyPosts || 1}\n🔥 Racha: ${gamification.streak} días\n🏆 Nivel: ${currentLevelData.title}\n\n¡La consistencia es clave!\n\nPrueba la app aquí: https://mlm-action-partner.vercel.app`;
+  const nextLevelData = LEVELS.find(l => l.level === gamification.level + 1);
+  const nextMinPoints = nextLevelData ? Number(nextLevelData.minPoints) : (currentPoints * 1.5 || 100);
+
+  const pointsForNextLevel = nextMinPoints;
+  const progressToNextLevel = Math.max(0, currentPoints - currentMinPoints);
+  const totalPointsNeeded = Math.max(1, pointsForNextLevel - currentMinPoints); // Avoid division by zero
+
+  const rawProgress = (progressToNextLevel / totalPointsNeeded) * 100;
+  const pointsProgress = Math.round(Math.min(100, Math.max(0, isNaN(rawProgress) ? 0 : rawProgress)));
+
+  const shareText = `🚀 *Mi Progreso de Hoy*\n\n✅ Contactos: ${progress.contactsMade}/${goals.dailyContacts}\n🔄 Seguimientos: ${progress.followUpsMade}/${goals.dailyFollowUps}\n📢 Posts: ${progress.postsMade || 0}/${goals.dailyPosts || 1}\n🔥 Racha: ${gamification.streak} días\n🏆 Nivel: ${currentLevelData.title}\n\n¡La consistencia es clave!\n\nPrueba la app aquí: ${window.location.origin}`;
 
   const handleNativeShare = async () => {
     if (navigator.share) {
@@ -91,7 +100,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
   };
 
   const shareTool = async () => {
-    const toolUrl = 'https://mlm-action-partner.vercel.app';
+    const toolUrl = window.location.origin;
     const baseText = `🚀 *¡Lleva tu negocio MLM al siguiente nivel!* \n\nUsa esta *herramienta gratuita* para profesionalizar tu prospección.\n\n💡 _"La ejecución diaria es la clave del éxito"_`;
     const fullText = `${baseText}\n\nPrueba la app aquí: ${toolUrl}`;
 
@@ -127,18 +136,21 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
                 <span className="relative flex items-center gap-1 bg-orange-500/20 text-orange-400 text-[10px] font-bold px-3 py-1 rounded-full border border-orange-500/20 uppercase tracking-wider overflow-hidden group">
                   {/* Pulsing Glow Background */}
                   <div className="absolute inset-0 bg-orange-500/20 animate-pulse"></div>
-                  <Zap size={10} fill="currentColor" className="relative z-10 animate-bounce" />
+                  <Zap size={10} fill="currentColor" className="relative z-10" />
                   <span className="relative z-10">{gamification.streak} Días 🔥</span>
                 </span>
               )}
             </div>
+            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-0.5">
+              Nivel {gamification.level}
+            </p>
             <h2 className="text-lg font-bold tracking-tight">{currentLevelData.title}</h2>
 
             {/* XP Bar */}
             <div className="w-48 h-2 bg-slate-700 rounded-full mt-2.5 overflow-hidden relative border border-white/5">
               <div
                 className="absolute top-0 left-0 h-full bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 transition-all duration-1000 shadow-[0_0_15px_rgba(129,140,248,0.5)]"
-                style={{ width: `${xpProgress}%` }}
+                style={{ width: `${pointsProgress}%` }}
               >
                 {/* Shimmer effect on bar */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
@@ -146,9 +158,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
             </div>
             <div className="flex justify-between w-48 mt-1.5">
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-                {xpProgress}% para Nivel {gamification.level + 1}
+                {pointsProgress}% para Nivel {gamification.level + 1}
               </p>
-              <p className="text-[10px] text-indigo-400 font-black">{gamification.xp} XP</p>
+              <p className="text-sm text-indigo-400 font-black">{gamification.points} Puntos</p>
             </div>
           </div>
 
@@ -167,21 +179,21 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
         {/* PROGRESS CIRCLES (3 COLUMNS) */}
         <div className="grid grid-cols-3 gap-2 relative z-10 mb-2">
           {/* Contacts */}
-          <div className="flex flex-col items-center gap-2">
-            <CircularProgress current={progress.contactsMade} max={goals.dailyContacts} colorClass="text-emerald-400" icon={UserPlus} size={64} />
+          <div onClick={() => setViewState('CONTACT')} className="flex flex-col items-center gap-2 cursor-pointer transition-transform active:scale-95 duration-200 group">
+            <CircularProgress current={progress.contactsMade} max={goals.dailyContacts} colorClass="text-emerald-400 group-hover:text-emerald-500 transition-colors" icon={UserPlus} size={64} />
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-4">Contactos</span>
           </div>
 
           {/* FollowUps */}
-          <div className="flex flex-col items-center gap-2">
-            <CircularProgress current={progress.followUpsMade} max={goals.dailyFollowUps} colorClass="text-blue-400" icon={MessageCircle} size={64} />
+          <div onClick={() => setViewState('FOLLOWUP')} className="flex flex-col items-center gap-2 cursor-pointer transition-transform active:scale-95 duration-200 group">
+            <CircularProgress current={progress.followUpsMade} max={goals.dailyFollowUps} colorClass="text-blue-400 group-hover:text-blue-500 transition-colors" icon={MessageCircle} size={64} />
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-4">Seguim.</span>
           </div>
 
           {/* Posts (Actionable) */}
           <div className="flex flex-col items-center gap-2 relative group">
-            <div onClick={() => setShowPostModal(true)} className="cursor-pointer transition-transform active:scale-95">
-              <CircularProgress current={progress.postsMade || 0} max={goals.dailyPosts || 1} colorClass="text-pink-400" icon={Megaphone} size={64} />
+            <div onClick={() => setShowPostModal(true)} className="cursor-pointer transition-transform active:scale-95 duration-200 relative group">
+              <CircularProgress current={progress.postsMade || 0} max={goals.dailyPosts || 1} colorClass="text-pink-400 group-hover:text-pink-500 transition-colors" icon={Megaphone} size={64} />
             </div>
             <button
               onClick={() => setShowPostModal(true)}
@@ -200,7 +212,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
 
           <div className="flex items-center justify-between gap-4 relative z-10">
             <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-2xl ${gamification.currentMission.completed ? 'bg-emerald-500 text-white' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 animate-bounce'}`}>
+              <div className={`p-3 rounded-2xl ${gamification.currentMission.completed ? 'bg-emerald-500 text-white' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'}`}>
                 {gamification.currentMission.completed ? <Check size={24} strokeWidth={3} /> : <Trophy size={24} />}
               </div>
               <div className="text-left">
@@ -217,7 +229,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
             {!gamification.currentMission.completed && (
               <button
                 onClick={onCompleteMission}
-                className="bg-slate-900 text-white text-[10px] font-black px-4 py-3 rounded-2xl hover:bg-indigo-600 transition-all active:scale-90 uppercase tracking-widest"
+                className="bg-slate-900 text-white text-[10px] font-black px-4 py-3 rounded-2xl hover:bg-indigo-600 transition-all active:scale-95 uppercase tracking-widest animate-[pulse_1.5s_ease-in-out_infinite] shadow-lg shadow-indigo-500/20"
               >
                 Logrado
               </button>
@@ -287,24 +299,27 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
         </button>
       </div>
 
-      {/* COMPARTIR HERRAMIENTA (RESTORED) */}
+      {/* COMPARTIR HERRAMIENTA (PSYCHOLOGICAL HOOK - PROFESSIONAL) */}
       <div className="pt-6 border-t border-slate-100 mt-6 relative z-10">
+        <div className="text-center mb-3">
+          <p className="text-xs font-extrabold text-slate-900 uppercase tracking-wide">
+            Todo profesional del multinivel <br /> debe tener esta app
+          </p>
+          <p className="text-[10px] text-slate-500 mt-1">Desbloquea tu siguiente nivel compartiendo esta herramienta.</p>
+        </div>
         <button
           onClick={shareTool}
-          className="w-full flex items-center justify-center gap-3 py-6 relative overflow-hidden rounded-[28px] font-black group transition-all shadow-2xl shadow-indigo-500/40 hover:shadow-indigo-500/60 active:scale-[0.98] ring-4 ring-indigo-500/20 hover:ring-indigo-500/40 border-2 border-white/20"
+          className="w-full flex items-center justify-center gap-3 py-4 relative overflow-hidden rounded-[20px] font-black group transition-all shadow-xl shadow-indigo-500/30 hover:shadow-indigo-500/50 active:scale-[0.98] ring-4 ring-indigo-500/10 hover:ring-indigo-500/30 border border-indigo-500/20 bg-indigo-600 text-white"
         >
           {/* Background Gradient - Animated */}
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 animate-gradient bg-[length:200%_200%]"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-700"></div>
 
           {/* Shine Effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-shimmer"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
 
-          <Share2 size={26} className="text-white relative z-10 group-hover:rotate-12 transition-transform drop-shadow-md" />
-          <span className="text-base tracking-tight uppercase text-white relative z-10 drop-shadow-md">Compartir esta herramienta</span>
+          <Share2 size={20} className="relative z-10 group-hover:rotate-12 transition-transform" />
+          <span className="text-sm tracking-tight uppercase relative z-10">Compartir esta Herramienta</span>
         </button>
-        <p className="text-center text-[10px] text-slate-400 mt-3 font-bold uppercase tracking-widest">
-          Ayuda a tu equipo a ejecutar todos los días
-        </p>
       </div>
 
 
