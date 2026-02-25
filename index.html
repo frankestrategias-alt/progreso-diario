@@ -3,38 +3,150 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MLM Progreso Diario</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Networker Pro</title>
     <meta name="theme-color" content="#10b981">
-    <link rel="manifest" href="/manifest.json?v=2">
+    <link rel="manifest" href="/manifest.json?v=3">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="MLM Progreso Diario">
+    <meta name="apple-mobile-web-app-title" content="Networker Pro">
     <link rel="apple-touch-icon" href="/icon-192.png">
 
-    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Preloads for Speed -->
+    <link rel="preload" href="/index.css" as="style">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet"
+        media="print" onload="this.media='all'">
+    <noscript>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap"
+            rel="stylesheet">
+    </noscript>
     <style>
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f8fafc;
+            margin: 0;
+        }
+
+        #root:empty {
+            background: #fff;
+            height: 100vh;
+            width: 100vw;
         }
     </style>
-    <script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.40.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0"
-  }
-}
-</script>
+
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <link rel="stylesheet" href="/index.css">
+
+    <!-- GOOGLE ANALYTICS MAESTRO (Frank Estrategias) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-KWPGF9WES2"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-KWPGF9WES2');
+    </script>
+
+    <!-- FRANK BOLIVAR AI (Agente Maestro) -->
+    <script>
+        // Sistema preparado para la integración del Agente Maestro.
+        window.initAIAgent = () => {
+            console.log("🤖 Frank Bolivar AI: Sistema Listo.");
+        };
+    </script>
 </head>
 
 <body>
+    <!-- PANTALLA DE DIAGNÓSTICO (Solo visible en error) -->
+    <div id="critical-diagnostic"
+        style="display:none; position:fixed; inset:0; background:#fff; z-index:9999999; padding:25px; font-family:sans-serif; overflow:auto;">
+        <div style="max-width:500px; margin:0 auto;">
+            <h1 style="color:#e11d48; font-size:22px; font-weight:900; margin-bottom:10px;">🛠️ Error de Sistema</h1>
+            <p style="font-size:14px; color:#475569; line-height:1.5;">La aplicación no pudo iniciarse en este
+                navegador. Hemos intentado una reparación automática, pero el problema persiste.</p>
+            <div style="background:#f1f5f9; padding:15px; border-radius:12px; border:1px solid #e2e8f0; margin:20px 0;">
+                <p
+                    style="font-size:10px; font-weight:bold; color:#64748b; margin:0 0 10px 0; text-transform:uppercase;">
+                    Detalle Técnico:</p>
+                <pre id="diagnostic-log" style="font-size:11px; margin:0; white-space:pre-wrap; color:#1e293b;"></pre>
+            </div>
+            <button
+                onclick="localStorage.clear(); caches.keys().then(ns=>ns.forEach(n=>caches.delete(n))); location.reload();"
+                style="background:#0f172a; color:#fff; border:none; padding:16px; border-radius:16px; font-weight:bold; width:100%; font-size:14px; cursor:pointer; transition:all 0.2s;">
+                LIMPIAR TODO Y REINTENTAR
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // SISTEMA DE MONITOREO Y REPARACIÓN MAESTRA
+        const NUKE_ID = '1.7.2-ultra'; // Force cache clear for Chrome Blank Screen fix
+
+        // WATCHDOG: Si en 4 segundos no hay contenido en #root, mostrar diagnóstico
+        setTimeout(() => {
+            const root = document.getElementById('root');
+            if (root && root.innerHTML === "") {
+                console.error("🚨 Watchdog: App failed to load in 4s. Showing diagnostic.");
+                document.getElementById('critical-diagnostic').style.display = 'block';
+                document.getElementById('diagnostic-log').textContent += '⚠️ Tiempo de carga excedido (Watchdog)\nPosible bloqueo por Service Worker antiguo.\n';
+            }
+        }, 4000);
+
+        window.onerror = function (msg, url, line, col, error) {
+            document.getElementById('critical-diagnostic').style.display = 'block';
+            const log = document.getElementById('diagnostic-log');
+            const fileName = url ? url.split('/').pop() : 'script-externo';
+            log.textContent += '❌ ' + msg + '\n📍 ' + fileName + ':' + line + ':' + col + '\n';
+            if (error && error.stack) console.error(error.stack);
+            return false;
+        };
+
+        // Capturar errores de carga de recursos CRÍTICOS (ej. chunks de JS)
+        window.addEventListener('error', function (e) {
+            if (e.target.tagName === 'SCRIPT') {
+                document.getElementById('critical-diagnostic').style.display = 'block';
+                document.getElementById('diagnostic-log').textContent += '⚠️ Fallo crítico en script: ' + (e.target.src || 'anónimo') + '\n';
+            }
+        }, true);
+
+        if (localStorage.getItem('nuke_v') !== NUKE_ID) {
+            console.warn('💣 Iniciando Limpieza Atómica...', NUKE_ID);
+
+            // 1. Limpiar Service Workers
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(regs => {
+                    regs.forEach(reg => reg.unregister());
+                });
+            }
+
+            // 2. Limpiar Caches
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => caches.delete(name));
+                });
+            }
+
+            // 3. Limpiar Bases de Datos (Protegido para navegadores antiguos/Safari)
+            if ('indexedDB' in window && typeof indexedDB.databases === 'function') {
+                indexedDB.databases().then(dbs => {
+                    dbs.forEach(db => {
+                        if (db.name) indexedDB.deleteDatabase(db.name);
+                    });
+                }).catch(err => console.log('IDB Cleanup skip:', err));
+            }
+
+            // 4. Marcar y reiniciar
+            localStorage.setItem('nuke_v', NUKE_ID);
+            setTimeout(() => {
+                window.location.replace(window.location.origin + window.location.pathname + '?r=' + Date.now());
+            }, 800);
+        }
+    </script>
+
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 </body>
