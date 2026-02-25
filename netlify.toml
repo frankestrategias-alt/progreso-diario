@@ -1,0 +1,12 @@
+[build]
+  # Esta configuración asegura que Netlify busque el código en el lugar correcto
+  # Si el código fuente está en la raíz de la rama 'main', dejamos base vacío o omitido.
+  command = "npm run build"
+  publish = "dist"
+
+[context.production]
+  environment = { NODE_VERSION = "20" }
+
+[context.production.environment]
+  # La clave debe estar configurada en el panel de Netlify como VITE_GEMINI_API_KEY
+  # No poner la clave real aquí por seguridad.
