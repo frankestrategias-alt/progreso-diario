@@ -22,7 +22,15 @@ const voiceId = "pNInz6obpgDQGcFmaJgB"; // Voz "Adam" o similar profesional
 const speakWithBrowser = async (text: string): Promise<void> => {
   return new Promise(async (resolve) => {
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text.replace(/\*/g, ''));
+
+    // Limpiamos asteriscos y emojis para evitar pronunciación de robots
+    const cleanText = text
+      .replace(/\*/g, '')
+      .replace(/#/g, '')
+      .replace(/[\u{1F600}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F300}-\u{1F5FF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}]/gu, '')
+      .trim();
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'es-ES';
 
     // Mejorar la voz robótica: Buscar voces premium/naturales en el dispositivo
@@ -40,15 +48,32 @@ const speakWithBrowser = async (text: string): Promise<void> => {
     }
 
     const isES = (lang: string) => lang.startsWith('es');
-    const isPremium = (name: string) =>
-      name.includes('Google') || name.includes('Neural') ||
-      name.includes('Natural') || name.includes('Sabina') ||
-      name.includes('Premium');
 
-    let selectedVoice = voices.find(v => isES(v.lang) && isPremium(v.name));
-    if (!selectedVoice) {
-      selectedVoice = voices.find(v => isES(v.lang));
-    }
+    // Asignamos una puntuación para filtrar la mejor voz
+    const getVoiceScore = (voice: SpeechSynthesisVoice) => {
+      let score = 0;
+      const lowerName = voice.name.toLowerCase();
+
+      if (lowerName.includes('premium')) score += 10;
+      if (lowerName.includes('neural')) score += 10;
+      if (lowerName.includes('natural')) score += 10;
+      if (lowerName.includes('online')) score += 8;
+      if (lowerName.includes('sabina')) score += 5;
+
+      if (lowerName.includes('google')) score += 5;
+      if (lowerName.includes('siri')) score += 5;
+      if (lowerName.includes('samsung')) score += 5;
+
+      if (voice.localService === false) score += 5; // Preference to cloud voices usually
+      if (lowerName.includes('es-us') || lowerName.includes('es-mx')) score += 3; // Latin accents mostly
+
+      return score;
+    };
+
+    const esVoices = voices.filter(v => isES(v.lang));
+    esVoices.sort((a, b) => getVoiceScore(b) - getVoiceScore(a));
+
+    const selectedVoice = esVoices.length > 0 ? esVoices[0] : null;
 
     if (selectedVoice) {
       utterance.voice = selectedVoice;
@@ -64,8 +89,14 @@ const speakWithBrowser = async (text: string): Promise<void> => {
 
 export const speak = async (text: string): Promise<void> => {
   try {
-    const data = await callAiService("tts", { text });
-    if (!data.audioContent) throw new Error("No audio content from Google TTS");
+    // Limpiamos la pronunciación de viñetas, emojis y formatos markdown
+    const cleanText = text
+      .replace(/\*/g, '')
+      .replace(/#/g, '')
+      .replace(/[\u{1F600}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F300}-\u{1F5FF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}]/gu, '')
+      .trim();
+
+    const data = await callAiService("tts", { text: cleanText });
     if (!data.audioContent) throw new Error("No audio content from Google TTS");
 
     const audioBlob = b64toBlob(data.audioContent, 'audio/mp3');
@@ -482,30 +513,24 @@ export const generateHabitMessage = async (scenario: HabitScenario): Promise<str
   }
 };
 
-const ELITE_ASSISTANT_PROMPT = `Eres un Mentor Elite en Network Marketing, diseñado y entrenado por Frank Estrategias (el creador del "Sistema Premium 360", sistema que están usando ahora mismo).
-Tus respuestas deben ser precisas, persuasivas y altamente motivadoras. 
+const ELITE_ASSISTANT_PROMPT = `Eres el Asistente Elite exclusivo de "Networker Pro". 
+Tus respuestas deben ser precisas, persuasivas y altamente motivadoras. Nunca menciones "Sistema Premium 360", tu enfoque total es Networker Pro.
 
 REGLAS DE ORO:
-1. GUÍA SIMPLE: Siempre enfoca al usuario en el "embudo de 3 pasos" diario (Contactar -> Seguimiento -> Publicar). Si está perdido, recuérdale que TODO el éxito proviene de esos 3 pasos consistentes.
-2. ADICCIÓN AL SISTEMA: Refuerza que usar esta aplicación a diario es lo que separa a los novatos de los líderes. Premia verbalmente su esfuerzo ("Cada registro que haces aquí es una semilla de libertad financiera").
-3. BOTÓN DE PÁNICO (Duplicación): Busca oportunidades sutiles para decirle que el verdadero truco de la riqueza es la *duplicación*. Anímalo activamente a presionar el "Botón de Pánico / CLONAR SISTEMA" en la app para compartir su enlace (https://networker-pro.netlify.app/) con su equipo y crecer en automático.
-4. TONO: Humano, firme, visionario, carismático y directo al grano. Hablas como un líder que gana millones, pero que se preocupa por su equipo.
-5. FORMATO: Usa respuestas cortas (máximo 3-4 párrafos breves), usa emojis con estrategia y usa asteriscos para *resaltar* conceptos clave (esto ayuda al audio).
+1. EDUCAR EN LA HERRAMIENTA: Explícale al usuario cómo funciona Networker Pro. Recuérdale que tiene herramientas para generar guiones, ideas de contenido, manejar objeciones, y un dashboard para llevar su control diario. Enséñale que la app facilita su embudo diario (Contactar -> Seguimiento -> Publicar).
+2. ADICCIÓN AL SISTEMA: Recomienda usar Networker Pro todos los días. Premia verbalmente su esfuerzo y recuérdale que el uso constante de esta plataforma es la clave para la libertad financiera.
+3. DUPLICACIÓN (COMPARTIR): El gran secreto del éxito es la *duplicación*. Inculca obsesivamente que el equipo entero debe tener acceso a Networker Pro. Dirígelos a usar el "Botón de Pánico", copiar su link (https://networker-pro.netlify.app/) y entregárselo a todo su equipo para crecer automáticamente.
+4. TONO: Humano, comprensivo y como un mentor visionario. Limita el uso de mensajes muy largos; sé conciso pero empático.
+5. FORMATO: NO menciones "Sistema Premium 360". Si te preguntan, tú eres la IA nativa y exclusiva de Networker Pro creada para dominar el mercadeo en red.
 
 El usuario acaba de decir: `;
 
 export const generateEliteAssistantResponse = async (userMessage: string, history: { role: string, content: string }[] = []): Promise<string> => {
   try {
-    // Inject conversation history string into the prompt for memory
-    const formattedHistory = history.length > 0
-      ? "\n--- Historial reciente ---\n" + history.map(m => `${m.role === 'user' ? 'Usuario' : 'Asistente'}: ${m.content}`).join('\n') + "\n------------------------\n"
-      : "";
-
-    const finalPrompt = ELITE_ASSISTANT_PROMPT + formattedHistory + "\nUsuario actual dice: " + userMessage + "\nAsistente:";
-
     const data = await callAiService("gemini", {
-      prompt: finalPrompt,
-      systemInstruction: "You are the Elite Network Marketing Assistant by Frank. Keep in mind the conversation history to maintain context.",
+      prompt: userMessage,
+      history: history,
+      systemInstruction: ELITE_ASSISTANT_PROMPT,
       temperature: 0.8,
     });
 

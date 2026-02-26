@@ -16,5 +16,5 @@ echo =======================================================
 echo.
 echo ... INICIANDO SERVIDOR VIRTUAL ...
 echo (NO CIERRES ESTA VENTANA)
-call npx vite --host
+call npx netlify dev
 pause

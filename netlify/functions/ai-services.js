@@ -11,8 +11,32 @@ export const handler = async (event) => {
 
         const GEMINI_API_KEY = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
         const GOOGLE_CLOUD_KEY = process.env.VITE_GOOGLE_CLOUD_API_KEY || process.env.GOOGLE_CLOUD_API_KEY;
+        const ELEVENLABS_API_KEY = process.env.VITE_ELEVENLABS_API_KEY || process.env.ELEVENLABS_API_KEY;
 
         if (action === "tts") {
+            if (ELEVENLABS_API_KEY) {
+                const voiceId = "pNInz6obpgDQGcFmaJgB"; // Adam - Voz super humana
+                const elRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+                    method: 'POST',
+                    headers: { 'xi-api-key': ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: payload.text,
+                        model_id: "eleven_multilingual_v2",
+                        voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+                    })
+                });
+
+                if (elRes.ok) {
+                    const arrayBuffer = await elRes.arrayBuffer();
+                    const base64 = Buffer.from(arrayBuffer).toString('base64');
+                    return {
+                        statusCode: 200,
+                        headers: { "Access-Control-Allow-Origin": "*" },
+                        body: JSON.stringify({ audioContent: base64 })
+                    };
+                }
+            }
+
             if (!GOOGLE_CLOUD_KEY) {
                 return {
                     statusCode: 200,
@@ -60,11 +84,32 @@ export const handler = async (event) => {
                 };
             }
 
-            const modelId = "gemini-2.0-flash";
-            const { prompt, systemInstruction, temperature, responseMimeType, maxOutputTokens } = payload;
+            const modelId = "gemini-2.5-flash"; // Cambiado a gemini-2.5-flash acorde a los modelos disponibles
+            const { prompt, systemInstruction, temperature, responseMimeType, maxOutputTokens, history } = payload;
+
+            let contents = [];
+
+            // 1. Agregar historial si existe
+            if (history && Array.isArray(history)) {
+                contents = history.map(msg => ({
+                    role: msg.role === 'ai' ? 'model' : 'user',
+                    parts: [{ text: msg.content }]
+                }));
+            }
+
+            // Gemini requiere que el historial comience siempre con el rol 'user'. 
+            // Si nuestro primer mensaje fue la intro de la IA, le pre-cargamos un 'user' invisible
+            if (contents.length > 0 && contents[0].role === 'model') {
+                contents.unshift({ role: 'user', parts: [{ text: 'Hola, inicia el asistente.' }] });
+            }
+
+            // 2. Agregar el prompt actual al final
+            if (prompt) {
+                contents.push({ role: "user", parts: [{ text: prompt }] });
+            }
 
             const reqBody = {
-                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                contents,
                 generationConfig: {
                     temperature: temperature || 0.7,
                 }
