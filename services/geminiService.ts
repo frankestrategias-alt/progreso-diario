@@ -1,48 +1,73 @@
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+const callAiService = async (action: string, payload: any) => {
+  try {
+    const response = await fetch('/.netlify/functions/ai-services', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, payload })
+    });
 
-// Initialize the client. Support multiple environment variable standards
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error calling AI Service:", error);
+    throw error;
+  }
+};
 
 const elevenLabsKey = import.meta.env?.VITE_ELEVENLABS_API_KEY || "";
 const voiceId = "pNInz6obpgDQGcFmaJgB"; // Voz "Adam" o similar profesional
 
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
-
-// --- VOIX ENGINE (ELEVENLABS) ---
-export const speak = async (text: string): Promise<void> => {
-  if (!elevenLabsKey) {
-    console.warn("Speech skipped: No ElevenLabs API Key");
-    // Fallback simple a Web Speech API si no hay ElevenLabs
+// --- VOIX ENGINE (GOOGLE CLOUD TTS) ---
+const speakWithBrowser = (text: string): Promise<void> => {
+  return new Promise((resolve) => {
+    window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text.replace(/\*/g, ''));
     utterance.lang = 'es-ES';
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.onend = () => resolve();
+    utterance.onerror = () => resolve();
     window.speechSynthesis.speak(utterance);
-    return;
-  }
+  });
+};
 
+export const speak = async (text: string): Promise<void> => {
   try {
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'xi-api-key': elevenLabsKey,
-      },
-      body: JSON.stringify({
-        text,
-        model_id: "eleven_multilingual_v2",
-        voice_settings: { stability: 0.5, similarity_boost: 0.75 }
-      }),
-    });
+    const data = await callAiService("tts", { text });
+    if (!data.audioContent) throw new Error("No audio content from Google TTS");
+    if (!data.audioContent) throw new Error("No audio content from Google TTS");
 
-    if (!response.ok) throw new Error("ElevenLabs API Error");
-
-    const audioBlob = await response.blob();
+    const audioBlob = b64toBlob(data.audioContent, 'audio/mp3');
     const audioUrl = URL.createObjectURL(audioBlob);
     const audio = new Audio(audioUrl);
-    await audio.play();
+    await new Promise<void>((resolve, reject) => {
+      audio.onended = () => resolve();
+      audio.onerror = reject;
+      audio.play().catch(reject);
+    });
   } catch (error) {
-    console.error("TTS Error:", error);
+    console.warn("Google TTS failed, using Browser Speech:", error);
+    await speakWithBrowser(text);
   }
 };
+
+// Helper para convertir base64 a Blob
+const b64toBlob = (b64Data: string, contentType = '', sliceSize = 512) => {
+  const byteCharacters = atob(b64Data);
+  const byteArrays = [];
+  for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+    const slice = byteCharacters.slice(offset, offset + sliceSize);
+    const byteNumbers = new Array(slice.length);
+    for (let i = 0; i < slice.length; i++) {
+      byteNumbers[i] = slice.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    byteArrays.push(byteArray);
+  }
+  return new Blob(byteArrays, { type: contentType });
+};
+
 
 const SYSTEM_INSTRUCTION = `Expert mentor in Network Marketing. Style: Clear, direct, human. Focus: Action. Language: Spanish.
 Rules:
@@ -50,7 +75,7 @@ Rules:
 2. Initial goal: Conversation, empathy.
 3. Use *bold* (asterisks) for key phrases/questions.`;
 
-const modelId = "gemini-1.5-flash"; // More stable for long-term usage in 2026
+const modelId = "gemini-2.0-flash"; // Stable and fast in 2026
 
 // --- SAFE MOCK SYSTEM (FALLBACKS) ---
 // Expanded to ensure variety even without API Key
@@ -157,33 +182,13 @@ const getRandomMocks = (list: string[], count: number = 3) => {
 
 export const generateContactScript = async (context: string, platform: string, tone: string = "Casual", companyName: string = "", productNiche: string = ""): Promise<string> => {
   try {
-    if (!ai) throw new Error("No API Key");
-
-    const prompt = `
-    Genera 3 opciones de mensajes cortos para iniciar una conversación con un prospecto.
-    ${companyName ? `IMPORTANTE: El usuario trabaja en la compañía "${companyName}".` : ''}
-    ${productNiche ? `INDUSTRIA/NICHO: "${productNiche}". Adapta el lenguaje a este sector (ej: si es Salud usa bienestar, si es Viajes habla de experiencias).` : ''}
-    
-    Contexto del prospecto: ${context}
-    Plataforma: ${platform}
-    Tono deseado: ${tone}
-    ${tone === 'Explosivo' ? 'IMPORTANTE: El tono "Explosivo" significa: Disruptivo, con alta energía, usando emojis de fuego, menos formalidad y yendo directo al grano con confianza extrema (sin ser grosero).' : 'Ajusta el vocabulario y la formalidad según esto.'}
-    
-    Dame solo el texto de los mensajes, separados por "---".
-    Usa *asteriscos* para resaltar la intención del mensaje o palabras clave.
-    No incluyas introducciones ni explicaciones extra.
-    `;
-
-    const response: GenerateContentResponse = await ai.models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.7,
-      }
+    const data = await callAiService("gemini", {
+      prompt,
+      systemInstruction: SYSTEM_INSTRUCTION,
+      temperature: 0.7,
     });
 
-    return response.text || getRandomMocks(MOCK_RESPONSES.contact, 3);
+    return data.text || getRandomMocks(MOCK_RESPONSES.contact, 3);
   } catch (error: any) {
     console.warn("AI Error (Contact):", error.message);
     if (error.message?.includes("429")) {
@@ -195,34 +200,13 @@ export const generateContactScript = async (context: string, platform: string, t
 
 export const generateFollowUpScript = async (lastInteraction: string, daysAgo: string, interestLevel: string, tone: string = "Profesional", companyName: string = "", productNiche: string = ""): Promise<string> => {
   try {
-    if (!ai) throw new Error("No API Key");
-
-    const prompt = `
-    Genera 3 opciones de mensajes de seguimiento (follow-up).
-    Genera 3 opciones de mensajes de seguimiento (follow-up).
-    ${companyName ? `IMPORTANTE: El usuario trabaja en la compañía "${companyName}". Adapta los términos al negocio.` : ''}
-    ${productNiche ? `INDUSTRIA/NICHO: "${productNiche}".` : ''}
-    
-    Lo que hablamos la última vez: ${lastInteraction}
-    Tiempo transcurrido: ${daysAgo}
-    Nivel de interés previo: ${interestLevel}
-    Tono deseado: ${tone}
-    
-    El tono debe ser coherente con la solicitud, pero siempre manteniendo postura.
-    IMPORTANTE: Usa *asteriscos* para resaltar la frase gancho o la pregunta final.
-    Dame solo el texto de los mensajes, separados por "---".
-    `;
-
-    const response: GenerateContentResponse = await ai.models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.7,
-      }
+    const data = await callAiService("gemini", {
+      prompt,
+      systemInstruction: SYSTEM_INSTRUCTION,
+      temperature: 0.7,
     });
 
-    return response.text || getRandomMocks(MOCK_RESPONSES.followUp, 3);
+    return data.text || getRandomMocks(MOCK_RESPONSES.followUp, 3);
   } catch (error: any) {
     console.warn("AI Error (FollowUp):", error.message);
     return getRandomMocks(MOCK_RESPONSES.followUp, 3);
@@ -250,72 +234,14 @@ const getThemeOfDay = () => {
 
 export const generateSocialPost = async (network: string, goal: string, mood: string, companyName: string = "", customContext: string = "", productNiche: string = ""): Promise<SocialStrategy> => {
   try {
-    if (!ai) throw new Error("No API Key");
-
-    const isVideo = network === 'TikTok' || network === 'Instagram';
-    const theme = getThemeOfDay();
-
-    const prompt = `
-    Actúa como un Experto Mentor de Network Marketing y Estratega de Redes Sociales de Clase Mundial. 
-    ${companyName ? `Compañía: "${companyName}".` : ""}
-    ${productNiche ? `NICHO DE MERCADO: "${productNiche}". (Asegura que el contenido resuene con la audiencia interesada en esto).` : ""}
-    TEMA ESTRATÉGICO DE HOY: ${theme}
-    ${customContext ? `CONTEXTO ESPECÍFICO DEL POST: "${customContext}".` : ""}
-    
-    TU MISIÓN: Crear un contenido de ALTO IMPACTO que genere curiosidad instantánea y prospección orgánica.
-    
-    OBJETIVO: ${goal}.
-    RED SOCIAL: ${network}
-    
-    ${isVideo ? `
-    ESTRUCTURA DE VIDEO (Script):
-    Genera un guion magnético dividido en:
-    1. GANCHO (Hook): 0-3 seg para detener el scroll.
-    2. DESARROLLO (Body): 3-15 seg con el mensaje de valor.
-    3. CTA: 15-20 seg con la instrucción de cierre.
-    ` : `
-    ESTRUCTURA DE TEXTO (Post):
-    Crea un post corto, humano, con un gancho potente y un llamado a la acción.
-    `}
-
-    REGLAS DE ORO:
-    - CERO VENTA DIRECTA. No nombres la marca como si fuera un catálogo. Vende la CURIOSIDAD.
-    - Lenguaje natural, como le hablarías a un amigo.
-    - Usa asteriscos (*) para resaltar conceptos clave.
-    - VARIEDAD VISUAL CRÍTICA: La "imageHint" es tu pieza maestra. DEBE ser una instrucción de arte paso a paso, ultra-específica y DIRECTA.
-      USA ESTE FORMATO COMO LEY: "Debes crear un [formato] de [tiempo/detalle] haciendo [actividad] y LUEGO SUBIRLO a tu ${network === 'WhatsApp' ? 'Estados de WhatsApp' : network}".
-      Alterna entre: 
-      - MISIÓN VISUAL: Un video corto de acción (sirviendo un café, abriendo un paquete, caminando).
-      - MISIÓN VISUAL: Una foto de estilo de vida premium (laptop abierto, café con luz natural, libro inspirador).
-      - MISIÓN VISUAL: Un plano de detalle (closeup) de un elemento de tu negocio (sin marcas visibles).
-
-    FORMATO DE SALIDA (JSON ABSOLUTO):
-    {
-      "mainPost": "${isVideo ? "Resumen corto de qué decir" : "Texto completo del post para copiar"}",
-      "cta": "Instrucción de cierre (ej: 'Comenta INFO')",
-      "imageHint": "MISIÓN VISUAL: Debes crear un [Video/Foto] de [Detalle] haciendo [Actividad] y LUEGO SUBIRLO a tu ${network === 'WhatsApp' ? 'Estados de WhatsApp' : network}",
-      ${isVideo ? `"videoScript": {
-        "hook": "Frase exacta del gancho",
-        "body": "Puntos clave o frase del desarrollo",
-        "cta": "Frase exacta del llamado a la acción"
-      },` : ""}
-      "proInsights": {
-        "post": "RAZÓN PSICOLÓGICA: Explica por qué este contenido detiene el dedo del prospecto"
-      }
-    }
-    `;
-
-    const response: GenerateContentResponse = await ai.models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.8,
-        responseMimeType: "application/json"
-      }
+    const data = await callAiService("gemini", {
+      prompt,
+      systemInstruction: SYSTEM_INSTRUCTION,
+      temperature: 0.8,
+      responseMimeType: "application/json"
     });
 
-    const text = response.text || "{}";
+    const text = data.text || "{}";
     const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
     return JSON.parse(cleanText);
 
@@ -386,37 +312,14 @@ export interface ObjectionStrategy {
 
 export const generateObjectionResponse = async (objection: string, companyName: string = "", tone: string = "Empático"): Promise<ObjectionStrategy> => {
   try {
-    if (!ai) throw new Error("No API Key");
-
-    const prompt = `
-    Actúa como un Mentor de Elite en Network Marketing y Psicología de Ventas.
-    ${companyName ? `Contexto: Trabajo en la compañía "${companyName}".` : ""}
-    El prospecto me dio esta objeción: "${objection}".
-    Tono deseado de la respuesta: "${tone}".
-    
-    TU OBJETIVO: No solo darme qué decir, sino enseñarme CÓMO pensarlo y CÓMO DECIRLO.
-    Usa la técnica: *Validar, Aislar y Reencuadrar*.
-
-    FORMATO DE SALIDA (JSON):
-    {
-        "script": "La respuesta exacta para decir (Corta, directa, termina con pregunta). Usa *negritas* para énfasis.",
-        "psychology": "Explicación breve de POR QUÉ funciona.",
-        "tone": "Confirmación del tono usado",
-        "audioDirective": "Instrucción magistral de actuación (Tono de voz, micro-expresiones, manejo de silencios y postura corporal). Debe sentirse como un Coach de Voz de alto nivel."
-    }
-    `;
-
-    const response: GenerateContentResponse = await ai.models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.8,
-        responseMimeType: "application/json"
-      }
+    const data = await callAiService("gemini", {
+      prompt,
+      systemInstruction: SYSTEM_INSTRUCTION,
+      temperature: 0.8,
+      responseMimeType: "application/json"
     });
 
-    const text = response.text || "{}";
+    const text = data.text || "{}";
     const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
     return JSON.parse(cleanText);
 
@@ -452,27 +355,13 @@ export const generateObjectionResponse = async (objection: string, companyName: 
 
 export const generateDailyMotivation = async (goals: any, progress: any): Promise<string> => {
   try {
-    if (!ai) throw new Error("No API Key");
-
-    const prompt = `
-      Revisa mis metas: ${JSON.stringify(goals)}
-      Mi progreso de hoy: ${JSON.stringify(progress)}
-      
-      Dame un consejo de 1 frase MUY potente para que me levante y tome acción AHORA MISMO.
-      Resalta la *acción principal* en negritas (un solo asterisco).
-      Si voy bajo, empújame. Si voy bien, felicítame rápido y dime que siga.
-      `;
-
-    const response: GenerateContentResponse = await ai.models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        maxOutputTokens: 100,
-      }
+    const data = await callAiService("gemini", {
+      prompt,
+      systemInstruction: SYSTEM_INSTRUCTION,
+      maxOutputTokens: 100,
     });
 
-    return response.text || getRandomMock(MOCK_RESPONSES.motivation);
+    return data.text || getRandomMock(MOCK_RESPONSES.motivation);
   } catch (error: any) {
     console.warn("AI Error (Motivation):", error.message);
     return getRandomMock(MOCK_RESPONSES.motivation);
@@ -481,32 +370,13 @@ export const generateDailyMotivation = async (goals: any, progress: any): Promis
 
 export const generateDailyPostIdea = async (): Promise<string> => {
   try {
-    if (!ai) throw new Error("No API Key");
-
-    const prompt = `
-    Actúa como experto en Marketing de Atracción.
-    Tu objetivo: Decirme exactamente qué publicar HOY. Sin opciones infinitas.
-    
-    Dame SOLO esta estructura estricta (separada por "---"):
-    
-    1. GANCHO DEL DÍA: (Frase corta, directa y llamativa. Curiosidad sin vender compañía).
-    2. IDEA DE PUBLICACIÓN: (Instrucción breve de qué mostrar. Sin teoría).
-    3. FORMATO SUGERIDO: (Elige SOLO UNO: Historia, Post o Reel corto).
-    4. CTA SIMPLE: (Llamada a la acción natural).
-    
-    No añadas introducciones ni conclusiones. Solo los 4 puntos separados por "---".
-    `;
-
-    const response: GenerateContentResponse = await ai.models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.8,
-      }
+    const data = await callAiService("gemini", {
+      prompt,
+      systemInstruction: SYSTEM_INSTRUCTION,
+      temperature: 0.8,
     });
 
-    return response.text || MOCK_RESPONSES.postIdea;
+    return data.text || MOCK_RESPONSES.postIdea;
   } catch (error: any) {
     console.warn("AI Error (PostIdea):", error.message);
     return MOCK_RESPONSES.postIdea;
@@ -515,33 +385,13 @@ export const generateDailyPostIdea = async (): Promise<string> => {
 
 export const generateRescuePost = async (): Promise<{ type: string, text: string, visual: string, objective: string }> => {
   try {
-    if (!ai) throw new Error("No API Key");
-
-    const prompt = `
-      El usuario está en "Modo Salvavidas" (bajo de energía/tiempo).
-      Necesita un post de ALTO IMPACTO y PROFUNDIDAD, pero de ejecución instantánea (Texto plano).
-      
-      Elige ALEATORIAMENTE uno de estos 3 ángulos y genera el contenido:
-      1. VULNERABILIDAD: Admitir que el camino es duro pero vale la pena.
-      2. AUTORIDAD: Una verdad incómoda sobre el éxito o el dinero.
-      3. VISIÓN: Por qué empezaste esto, recordándoselo a tu 'yo' del pasado.
-      
-      Dame la respuesta en este formato estricto separado por tuberías "|||":
-      TIPO DE POST (ej: Autoridad) ||| EL TEXTO DEL POST (Profundo, corto, con emojis, listo para copiar) ||| INSTRUCCIÓN VISUAL EXACTA (ej: Fondo negro, letra blanca, canción de piano) ||| OBJETIVO PSICOLÓGICO (Qué provoca en la mente del prospecto. Ej: Generar curiosidad, filtrar interesados)
-      
-      Sin introducciones.
-      `;
-
-    const response: GenerateContentResponse = await ai.models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.9,
-      }
+    const data = await callAiService("gemini", {
+      prompt,
+      systemInstruction: SYSTEM_INSTRUCTION,
+      temperature: 0.9,
     });
 
-    const raw = response.text || "";
+    const raw = data.text || "";
     const parts = raw.split('|||');
 
     if (parts.length >= 4) {
@@ -588,21 +438,49 @@ export const generateHabitMessage = async (scenario: HabitScenario): Promise<str
   `;
 
   try {
-    if (!ai) throw new Error("No API Key");
-
-    const response: GenerateContentResponse = await ai.models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 1,
-        maxOutputTokens: 50,
-      }
+    const data = await callAiService("gemini", {
+      prompt,
+      systemInstruction: SYSTEM_INSTRUCTION,
+      temperature: 1,
+      maxOutputTokens: 50,
     });
 
-    return response.text?.trim() || "La constancia construye tu futuro.";
+    return data.text?.trim() || "La constancia construye tu futuro.";
   } catch (error) {
     if (scenario === 'RESCUE_WIN') return "¡Ganar en días difíciles forja el carácter!";
     return scenario === 'SUCCESS' ? "¡Gran trabajo hoy! Sigues sumando." : "Mañana será otro día. No te rindas.";
+  }
+};
+
+const ELITE_ASSISTANT_PROMPT = `Eres un Mentor Elite en Network Marketing, diseñado y entrenado por Frank Estrategias (el creador del "Sistema Premium 360", sistema que están usando ahora mismo).
+Tus respuestas deben ser precisas, persuasivas y altamente motivadoras. 
+
+REGLAS DE ORO:
+1. GUÍA SIMPLE: Siempre enfoca al usuario en el "embudo de 3 pasos" diario (Contactar -> Seguimiento -> Publicar). Si está perdido, recuérdale que TODO el éxito proviene de esos 3 pasos consistentes.
+2. ADICCIÓN AL SISTEMA: Refuerza que usar esta aplicación a diario es lo que separa a los novatos de los líderes. Premia verbalmente su esfuerzo ("Cada registro que haces aquí es una semilla de libertad financiera").
+3. BOTÓN DE PÁNICO (Duplicación): Busca oportunidades sutiles para decirle que el verdadero truco de la riqueza es la *duplicación*. Anímalo activamente a presionar el "Botón de Pánico / CLONAR SISTEMA" en la app para compartir su enlace (https://networker-pro.netlify.app/) con su equipo y crecer en automático.
+4. TONO: Humano, firme, visionario, carismático y directo al grano. Hablas como un líder que gana millones, pero que se preocupa por su equipo.
+5. FORMATO: Usa respuestas cortas (máximo 3-4 párrafos breves), usa emojis con estrategia y usa asteriscos para *resaltar* conceptos clave (esto ayuda al audio).
+
+El usuario acaba de decir: `;
+
+export const generateEliteAssistantResponse = async (userMessage: string, context?: any): Promise<string> => {
+  try {
+    const data = await callAiService("gemini", {
+      prompt: ELITE_ASSISTANT_PROMPT + userMessage,
+      systemInstruction: "You are the Elite Network Marketing Assistant by Frank.",
+      temperature: 0.8,
+    });
+
+    return data.text || "¡Excelente pregunta! Lo más importante ahora es que mantengas tu consistencia en los Contactos. ¿Ya hiciste los tuyos hoy?";
+  } catch (error: any) {
+    console.warn("AI Error (EliteAssistant):", error.message);
+    const mockResponses = [
+      "¡Esa es la mentalidad! Recuerda que el embudo de 3 pasos (Contactar, Seguimiento, Postear) es tu mapa del tesoro. Solo apégate al plan.",
+      "Excelente. Oye, ¿ya viste lo fácil que fue esto? Imagina a todo tu equipo haciéndolo. Busca el *Botón de Pánico* (Clonar Sistema) y compártelo con ellos.",
+      "Entiendo perfectamente. Los líderes como nosotros no se detienen por eso. Vamos a enfocarnos en tus métricas de hoy, ¡cada contacto cuenta para tu nivel Elite!",
+      "Lo primero siempre es prospectar. Si el vaso no está lleno, no puedes dar de beber. ¿Ya enviaste los contactos de esta jornada?"
+    ];
+    return mockResponses[Math.floor(Math.random() * mockResponses.length)];
   }
 };

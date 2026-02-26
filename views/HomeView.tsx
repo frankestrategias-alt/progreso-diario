@@ -1,20 +1,52 @@
 import React, { useEffect, useState } from 'react';
-import { MessageCircle, ShieldCheck, Target, Zap, UserPlus, Trophy, ChevronRight, Share2, X, Check, Copy, Megaphone, HelpCircle, BarChart3, Palette } from 'lucide-react';
+import {
+  Users,
+  Target,
+  Flame,
+  MessageSquare,
+  Share2,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  MoreHorizontal,
+  Plus,
+  ArrowRight,
+  TrendingUp,
+  Award,
+  Shield,
+  Zap,
+  ShoppingBag,
+  ChevronRight,
+  Settings,
+  UserPlus,
+  MessageCircle,
+  Megaphone,
+  Check,
+  ShieldCheck,
+  X,
+  Copy,
+  PlusCircle,
+  LayoutGrid
+} from 'lucide-react';
 import { ViewState, DailyProgress, UserGoals, GamificationState, LEVELS } from '../types';
+import { useAppContext } from '../contexts/AppContext';
+
 import { TaskTracker } from '../components/TaskTracker';
-import { DailyPostView } from './DailyPostView'; // Import directly for Modal
+import { ProspectingPulse } from '../components/ProspectingPulse';
+import { RescueMode } from '../components/RescueMode';
+import { DailyPostView } from './DailyPostView';
+import { ShareToolModal } from '../components/ShareToolModal';
+import { DailySecret } from '../components/DailySecret';
+import { PaywallModal } from '../components/PaywallModal';
 
 interface HomeViewProps {
   setViewState: (view: ViewState) => void;
-  progress: DailyProgress;
-  goals: UserGoals;
-  gamification: GamificationState;
   onShowHelp: () => void;
   onRecordPost: (isRescue: boolean) => void;
   onCompleteMission: () => void;
+  addPoints: (amount: number) => void;
 }
 
-// Helper component for Circular Progress (Smaller for 3 items)
 const CircularProgress = ({
   current,
   max,
@@ -28,10 +60,11 @@ const CircularProgress = ({
   icon: React.ElementType,
   size?: number
 }) => {
-  const [offset, setOffset] = useState(0);
   const radius = size / 2 - 4;
   const circumference = 2 * Math.PI * radius;
   const percentage = Math.min(100, Math.max(0, (current / max) * 100));
+  const initialOffset = circumference - (percentage / 100) * circumference;
+  const [offset, setOffset] = useState(initialOffset);
 
   useEffect(() => {
     const progressOffset = circumference - (percentage / 100) * circumference;
@@ -58,25 +91,109 @@ const CircularProgress = ({
   );
 };
 
-export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goals, gamification, onShowHelp, onRecordPost, onCompleteMission }) => {
+export const HomeView: React.FC<HomeViewProps> = ({
+  setViewState,
+  onShowHelp,
+  onRecordPost,
+  onCompleteMission,
+  addPoints
+}) => {
+  const { progress, goals, gamification } = useAppContext();
+
   const [showShareModal, setShowShareModal] = useState(false);
   const [showPostModal, setShowPostModal] = useState(false);
+  const [showShareToolModal, setShowShareToolModal] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isExclusiveVisible, setIsExclusiveVisible] = useState(true);
+
+  // Check visibility of Exclusive Services card
+  useEffect(() => {
+    try {
+      const hiddenUntil = localStorage.getItem('exclusiveCardHiddenUntil');
+      if (hiddenUntil) {
+        const now = Date.now();
+        if (now < Number(hiddenUntil)) {
+          setIsExclusiveVisible(false);
+        } else {
+          localStorage.removeItem('exclusiveCardHiddenUntil');
+        }
+      }
+    } catch (e) {
+      console.error("Error checking exclusive card visibility:", e);
+    }
+  }, []);
+
+  const handleCloseExclusive = () => {
+    const oneHour = 3600000;
+    const hideUntil = Date.now() + oneHour;
+    localStorage.setItem('exclusiveCardHiddenUntil', hideUntil.toString());
+    setIsExclusiveVisible(false);
+  };
+
+  const [tasks, setTasks] = useState(() => {
+    try {
+      const saved = localStorage.getItem('dailyTasks');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Error loading tasks:", e);
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    const handleStorage = () => {
+      try {
+        const saved = localStorage.getItem('dailyTasks');
+        if (saved) setTasks(JSON.parse(saved));
+      } catch (e) {
+        console.error("Storage error:", e);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    const interval = setInterval(handleStorage, 2000);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      clearInterval(interval);
+    };
+  }, []);
 
   const totalActions = progress.contactsMade + progress.followUpsMade + (progress.postsMade || 0);
   const totalGoals = goals.dailyContacts + goals.dailyFollowUps + (goals.dailyPosts || 1);
   const overallPercentage = Math.min(100, Math.round((totalActions / totalGoals) * 100));
 
-  const currentPoints = Number(gamification.points) || 0;
+  const isContactsDone = progress.contactsMade >= goals.dailyContacts;
+  const isFollowUpsDone = progress.followUpsMade >= goals.dailyFollowUps;
+
+  const getCardStyle = (type: 'contact' | 'followup' | 'post' | 'objections') => {
+    const base = "w-full group rounded-[var(--radius-standard)] p-6 transition-all duration-500 flex items-center justify-between border ";
+
+    if (type === 'contact') {
+      if (!isContactsDone) return base + "bg-white border-emerald-400 shadow-[0_0_30px_-5px_rgba(52,211,153,0.3)] scale-[1.02] premium-card-shadow z-10 relative";
+      return base + "bg-slate-50 border-slate-100 opacity-60";
+    }
+    if (type === 'followup') {
+      if (!isContactsDone) return base + "bg-slate-50 border-slate-100 opacity-40 grayscale-[50%]";
+      if (!isFollowUpsDone) return base + "bg-white border-blue-400 shadow-[0_0_30px_-5px_rgba(96,165,250,0.3)] scale-[1.02] premium-card-shadow z-10 relative";
+      return base + "bg-slate-50 border-slate-100 opacity-60";
+    }
+    if (type === 'post') {
+      if (!isFollowUpsDone) return base + "bg-slate-50 border-slate-100 opacity-40 grayscale-[50%]";
+      return base + "bg-white border-pink-400 shadow-[0_0_30px_-5px_rgba(244,114,182,0.3)] scale-[1.02] premium-card-shadow z-10 relative";
+    }
+    if (type === 'objections') {
+      return base + "bg-slate-50 border-slate-100 opacity-70 hover:opacity-100";
+    }
+    return base;
+  };
+
   const currentLevelData = LEVELS.find(l => l.level === gamification.level) || LEVELS[0];
-  const currentMinPoints = Number(currentLevelData.minPoints) || 0;
-
   const nextLevelData = LEVELS.find(l => l.level === gamification.level + 1);
-  const nextMinPoints = nextLevelData ? Number(nextLevelData.minPoints) : (currentPoints * 1.5 || 100);
+  const nextMinPoints = nextLevelData ? Number(nextLevelData.minPoints) : (Number(gamification.points) * 1.5 || 100);
 
-  const pointsForNextLevel = nextMinPoints;
-  const progressToNextLevel = Math.max(0, currentPoints - currentMinPoints);
-  const totalPointsNeeded = Math.max(1, pointsForNextLevel - currentMinPoints); // Avoid division by zero
+  const currentMinPoints = Number(currentLevelData.minPoints) || 0;
+  const progressToNextLevel = Math.max(0, Number(gamification.points) - currentMinPoints);
+  const totalPointsNeeded = Math.max(1, nextMinPoints - currentMinPoints);
 
   const rawProgress = (progressToNextLevel / totalPointsNeeded) * 100;
   const pointsProgress = Math.round(Math.min(100, Math.max(0, isNaN(rawProgress) ? 0 : rawProgress)));
@@ -90,31 +207,47 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
       } catch (err) { console.log('Error sharing', err); }
     } else {
       handleCopy(shareText);
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+      window.open(whatsappUrl, '_blank');
     }
   };
 
   const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text);
+    } else {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+      } catch (err) {
+        console.error('Fallback copy failed', err);
+      }
+      document.body.removeChild(textArea);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const shareTool = async () => {
-    const toolUrl = window.location.origin;
-    const baseText = `🚀 *¡Lleva tu negocio MLM al siguiente nivel!* \n\nUsa esta *herramienta gratuita* para profesionalizar tu prospección.\n\n💡 _"La ejecución diaria es la clave del éxito"_`;
-    const fullText = `${baseText}\n\nPrueba la app aquí: ${toolUrl}`;
+    const toolUrl = "https://networker-pro.netlify.app/";
+    const baseText = `⚠️ *URGENTE EQUIPO* ⚠️\n\nAcabo de configurar mi embudo completo con Inteligencia Artificial. Me tomó 2 minutos y ya está trabajando por mí automáticamente.\n\nLes dejo mi clon exacto para que lo instalen en 1 clic antes de nuestra próxima reunión:`;
+    const fullText = `${baseText}\n\n👉 ${toolUrl}`;
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'MLM Progreso Diario',
+          title: 'Sistema Premium 360 - Clonar Embudo',
           text: baseText,
           url: toolUrl
         });
       } catch (err) { }
     } else {
       handleCopy(fullText);
-      alert('¡Enlace y frase copiados!');
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(fullText)}`;
+      window.open(whatsappUrl, '_blank');
     }
   };
 
@@ -122,208 +255,197 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
     <div className="space-y-5 animate-in fade-in zoom-in duration-300 relative pb-10">
 
       {/* SUPER STATS CARD (FUSIONED) */}
-      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-[32px] p-5 text-white shadow-xl shadow-slate-200 border border-slate-700 relative overflow-hidden">
+      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-[var(--radius-card)] p-6 text-white premium-card-shadow border border-slate-700/50 relative overflow-hidden transition-all duration-500 hover:shadow-indigo-500/10">
 
-        {/* Glow Effects */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -ml-10 -mb-10 pointer-events-none"></div>
+        <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/15 rounded-full blur-[100px] -mr-16 -mt-16 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-[100px] -ml-16 -mb-16 pointer-events-none"></div>
 
-        {/* Header: Level & Actions */}
-        <div className="flex justify-between items-start mb-6 relative z-10">
-          <div onClick={() => setViewState('GOALS')} className="cursor-pointer">
-            <div className="flex items-center gap-2 mb-1">
+        <div className="flex justify-between items-start mb-8 relative z-10">
+          <div onClick={() => setViewState('GOALS')} className="cursor-pointer group/level">
+            <div className="flex items-center gap-2 mb-2">
               {gamification.streak > 0 && (
-                <span className="relative flex items-center gap-1 bg-orange-500/20 text-orange-400 text-[10px] font-bold px-3 py-1 rounded-full border border-orange-500/20 uppercase tracking-wider overflow-hidden group">
-                  {/* Pulsing Glow Background */}
-                  <div className="absolute inset-0 bg-orange-500/20 animate-pulse"></div>
-                  <Zap size={10} fill="currentColor" className="relative z-10" />
+                <span className="relative flex items-center gap-1.5 bg-orange-500/10 text-orange-400 text-[10px] font-black px-3 py-1.5 rounded-full border border-orange-500/20 uppercase tracking-widest overflow-hidden">
+                  <div className="absolute inset-0 bg-orange-500/5 animate-pulse"></div>
+                  <Zap size={10} fill="currentColor" className="relative z-10 animate-zap-pulse" />
                   <span className="relative z-10">{gamification.streak} Días 🔥</span>
                 </span>
               )}
             </div>
-            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-0.5">
+            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-1 opacity-80">
               Nivel {gamification.level}
             </p>
-            <h2 className="text-lg font-bold tracking-tight">{currentLevelData.title}</h2>
+            <h2 className="text-xl font-black tracking-tight text-white group-hover/level:text-indigo-300 transition-colors uppercase">{currentLevelData.title}</h2>
 
-            {/* XP Bar */}
-            <div className="w-48 h-2 bg-slate-700 rounded-full mt-2.5 overflow-hidden relative border border-white/5">
+            <div className="w-56 h-2.5 bg-slate-950/50 rounded-full mt-4 overflow-hidden relative border border-white/5 shadow-inner">
               <div
-                className="absolute top-0 left-0 h-full bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 transition-all duration-1000 shadow-[0_0_15px_rgba(129,140,248,0.5)]"
+                className="absolute top-0 left-0 h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(129,140,248,0.4)]"
                 style={{ width: `${pointsProgress}%` }}
               >
-                {/* Shimmer effect on bar */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
               </div>
             </div>
-            <div className="flex justify-between w-48 mt-1.5">
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-                {pointsProgress}% para Nivel {gamification.level + 1}
+            <div className="flex justify-between w-56 mt-2 px-1 whitespace-nowrap">
+              <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
+                {pointsProgress}% completado
               </p>
-              <p className="text-sm text-indigo-400 font-black">{gamification.points} Puntos</p>
+              <p className="text-[11px] text-indigo-400 font-black tracking-widest uppercase">{gamification.points} Puntos</p>
             </div>
           </div>
 
           <div className="flex gap-2 items-start text-right">
             <div className="flex gap-2">
-              <button onClick={() => setViewState('STATS')} className="p-2 rounded-xl bg-slate-700/50 text-slate-300 hover:text-white border border-white/10" title="Estadísticas">
-                <BarChart3 size={20} />
-              </button>
-              <button onClick={() => setShowShareModal(true)} className="p-2 rounded-xl bg-slate-700/50 text-slate-300 hover:text-white border border-white/10" title="Compartir">
+              <button onClick={() => setShowShareModal(true)} className="p-2 rounded-xl bg-slate-700/50 text-slate-300 hover:text-white border border-white/10 transition-colors" title="Compartir">
                 <Share2 size={20} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* PROGRESS CIRCLES (3 COLUMNS) */}
         <div className="grid grid-cols-3 gap-2 relative z-10 mb-2">
-          {/* Contacts */}
-          <div onClick={() => setViewState('CONTACT')} className="flex flex-col items-center gap-2 cursor-pointer transition-transform active:scale-95 duration-200 group">
+          <div onClick={() => setViewState('CONTACT')} className={`flex flex-col items-center gap-2 cursor-pointer transition-all duration-500 group ${!isContactsDone ? 'scale-110 drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]' : 'opacity-70 hover:opacity-100 grayscale hover:grayscale-0'}`}>
             <CircularProgress current={progress.contactsMade} max={goals.dailyContacts} colorClass="text-emerald-400 group-hover:text-emerald-500 transition-colors" icon={UserPlus} size={64} />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-4">Contactos</span>
+            <span className={`text-[10px] font-black uppercase tracking-wider mt-4 ${!isContactsDone ? 'text-emerald-400' : 'text-slate-500'}`}>Contactos</span>
           </div>
 
-          {/* FollowUps */}
-          <div onClick={() => setViewState('FOLLOWUP')} className="flex flex-col items-center gap-2 cursor-pointer transition-transform active:scale-95 duration-200 group">
+          <div onClick={() => isContactsDone ? setViewState('FOLLOWUP') : undefined} className={`flex flex-col items-center gap-2 transition-all duration-500 group ${!isContactsDone ? 'opacity-30 grayscale saturate-0 cursor-not-allowed pointer-events-none' : isFollowUpsDone ? 'opacity-70 hover:opacity-100 grayscale hover:grayscale-0 cursor-pointer' : 'scale-110 drop-shadow-[0_0_15px_rgba(96,165,250,0.3)] cursor-pointer'}`}>
             <CircularProgress current={progress.followUpsMade} max={goals.dailyFollowUps} colorClass="text-blue-400 group-hover:text-blue-500 transition-colors" icon={MessageCircle} size={64} />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-4">Seguim.</span>
+            <span className={`text-[10px] font-black uppercase tracking-wider mt-4 ${isContactsDone && !isFollowUpsDone ? 'text-blue-400' : 'text-slate-500'}`}>Seguim.</span>
           </div>
 
-          {/* Posts (Actionable) */}
-          <div className="flex flex-col items-center gap-2 relative group">
-            <div onClick={() => setShowPostModal(true)} className="cursor-pointer transition-transform active:scale-95 duration-200 relative group">
+          <div onClick={() => isFollowUpsDone ? setShowPostModal(true) : undefined} className={`flex flex-col items-center gap-2 relative group transition-all duration-500 ${!isFollowUpsDone ? 'opacity-30 grayscale saturate-0 cursor-not-allowed pointer-events-none' : 'scale-110 drop-shadow-[0_0_15px_rgba(244,114,182,0.3)] cursor-pointer'}`}>
+            <div className="transition-transform active:scale-95 duration-200 relative group w-full h-full flex justify-center">
               <CircularProgress current={progress.postsMade || 0} max={goals.dailyPosts || 1} colorClass="text-pink-400 group-hover:text-pink-500 transition-colors" icon={Megaphone} size={64} />
             </div>
-            <button
-              onClick={() => setShowPostModal(true)}
-              className="mt-2 bg-pink-500/20 hover:bg-pink-500 text-pink-300 hover:text-white border border-pink-500/30 px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-all"
-            >
-              ⚡ Crear
-            </button>
+            <span className={`text-[10px] font-black uppercase tracking-wider mt-4 ${isFollowUpsDone ? 'text-pink-400' : 'text-slate-500'}`}>Publicar</span>
           </div>
         </div>
       </div>
 
-      {/* DAILY MISSION CARD */}
-      {gamification.currentMission && (
-        <div className={`relative overflow-hidden p-5 rounded-[28px] border-2 transition-all duration-500 ${gamification.currentMission.completed ? 'bg-emerald-500/5 border-emerald-500/20 scale-[0.98]' : 'bg-gradient-to-br from-indigo-50 to-purple-50 border-white shadow-lg shadow-indigo-100'}`}>
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl"></div>
+      <ProspectingPulse />
 
-          <div className="flex items-center justify-between gap-4 relative z-10">
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-2xl ${gamification.currentMission.completed ? 'bg-emerald-500 text-white' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'}`}>
-                {gamification.currentMission.completed ? <Check size={24} strokeWidth={3} /> : <Trophy size={24} />}
-              </div>
-              <div className="text-left">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">Misión Especial</span>
-                  {gamification.currentMission.completed && <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">¡Completada!</span>}
-                </div>
-                <h3 className={`font-bold leading-tight ${gamification.currentMission.completed ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
-                  {gamification.currentMission.description}
-                </h3>
-              </div>
+      {gamification.currentMission && (
+        <div className={`relative overflow-hidden p-8 rounded-[var(--radius-premium)] border transition-all duration-700 ${gamification.currentMission.completed
+          ? 'bg-emerald-500/5 border-emerald-500/20 scale-[0.98]'
+          : 'bg-white border-slate-100 premium-card-shadow group'}`}>
+
+          <div className="relative z-10 flex flex-col items-center text-center">
+            <div className="flex items-center gap-2 mb-4">
+              <span className={`text-[10px] font-black uppercase tracking-[0.4em] ${gamification.currentMission.completed ? 'text-emerald-500' : 'text-amber-500 animate-pulse'}`}>
+                {gamification.currentMission.completed ? '✓ Misión Cumplida' : '✦ Misión de Hoy ✦'}
+              </span>
             </div>
 
-            {!gamification.currentMission.completed && (
+            <div className="mb-8 max-w-[300px]">
+              <h3 className={`text-2xl font-black mb-3 leading-tight tracking-tight ${gamification.currentMission.completed ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
+                {(gamification.currentMission as any).title || 'Misión Especial'}
+              </h3>
+              <p className={`text-sm font-bold leading-relaxed ${gamification.currentMission.completed ? 'text-slate-300' : 'text-slate-500 text-balance'}`}>
+                {gamification.currentMission.description}
+              </p>
+            </div>
+
+            {!gamification.currentMission.completed ? (
               <button
                 onClick={onCompleteMission}
-                className="bg-slate-900 text-white text-[10px] font-black px-4 py-3 rounded-2xl hover:bg-indigo-600 transition-all active:scale-95 uppercase tracking-widest animate-[pulse_1.5s_ease-in-out_infinite] shadow-lg shadow-indigo-500/20"
+                className="relative group/btn bg-slate-900 border border-white/10 overflow-hidden text-white text-[11px] font-black px-12 py-5 rounded-2xl hover:bg-indigo-600 transition-all active:scale-95 uppercase tracking-widest shadow-2xl flex items-center gap-3"
               >
-                Logrado
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-shimmer-sweep"></div>
+                <Zap size={16} className="text-amber-400 animate-zap-pulse relative z-10" fill="currentColor" />
+                <span className="relative z-10 animate-zap-pulse text-amber-50">!RECLAMAR PUNTOS!</span>
               </button>
+            ) : (
+              <div className="bg-emerald-500/10 text-emerald-600 border border-emerald-200/50 text-[11px] font-black px-12 py-5 rounded-2xl flex items-center gap-3 transition-opacity">
+                <Check size={18} strokeWidth={4} />
+                COMPLETADA
+              </div>
             )}
-          </div>
-
-          <div className="mt-3 flex items-center gap-1.5">
-            <div className="flex-1 h-1 bg-slate-200 rounded-full overflow-hidden">
-              <div className={`h-full transition-all duration-1000 ${gamification.currentMission.completed ? 'w-full bg-emerald-500' : 'w-0'}`}></div>
-            </div>
-            <span className="text-[10px] font-bold text-slate-400">+{gamification.currentMission.xpReward} XP</span>
           </div>
         </div>
       )}
 
-      <TaskTracker />
-
-      {/* SIMPLIFIED GRID (3 BUTTONS) */}
-      <div className="grid grid-cols-1 gap-4">
-        {/* CONTACTAR */}
-        <button onClick={() => setViewState('CONTACT')} className="group bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-2xl p-4 shadow-sm hover:shadow-lg transition-all flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="bg-emerald-100 p-3 rounded-xl text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-all">
-              <UserPlus size={24} />
-            </div>
-            <div className="text-left">
-              <h3 className="font-bold text-slate-800 group-hover:text-emerald-900">Contactar</h3>
-              <p className="text-xs text-slate-500">Nuevos prospectos</p>
-            </div>
-          </div>
-          <ChevronRight className="text-slate-300 group-hover:text-emerald-600" />
-        </button>
-
-        {/* SEGUIMIENTO */}
-        <button onClick={() => setViewState('FOLLOWUP')} className="group bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-2xl p-4 shadow-sm hover:shadow-lg transition-all flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="bg-blue-100 p-3 rounded-xl text-blue-600 group-hover:bg-blue-500 group-hover:text-white transition-all">
-              <MessageCircle size={24} />
-            </div>
-            <div className="text-left">
-              <h3 className="font-bold text-slate-800 group-hover:text-blue-900">Dar Seguimiento</h3>
-              <p className="text-xs text-slate-500">Retoma conversaciones</p>
-            </div>
-          </div>
-          <ChevronRight className="text-slate-300 group-hover:text-blue-600" />
-        </button>
-
-        {/* OBJECIONES */}
-        <button onClick={() => setViewState('OBJECTIONS')} className="group bg-white hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-2xl p-4 shadow-sm hover:shadow-lg transition-all flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="bg-amber-100 p-3 rounded-xl text-amber-600 group-hover:bg-amber-500 group-hover:text-white transition-all">
-              <ShieldCheck size={24} />
-            </div>
-            <div className="text-left">
-              <h3 className="font-bold text-slate-800 group-hover:text-amber-900">Objeciones</h3>
-              <p className="text-xs text-slate-500">Respuestas inteligentes</p>
-            </div>
-          </div>
-          <ChevronRight className="text-slate-300 group-hover:text-amber-600" />
-        </button>
-      </div>
-
-      {/* Goals & Settings Link */}
-      <div className="text-center mt-2">
-        <button onClick={() => setViewState('GOALS')} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-widest flex items-center justify-center gap-2 py-2">
-          <Target size={14} /> Ajustar mis Metas
-        </button>
-      </div>
-
-      {/* COMPARTIR HERRAMIENTA (PSYCHOLOGICAL HOOK - PROFESSIONAL) */}
-      <div className="pt-6 border-t border-slate-100 mt-6 relative z-10">
-        <div className="text-center mb-3">
-          <p className="text-xs font-extrabold text-slate-900 uppercase tracking-wide">
-            Todo profesional del multinivel <br /> debe tener esta app
-          </p>
-          <p className="text-[10px] text-slate-500 mt-1">Desbloquea tu siguiente nivel compartiendo esta herramienta.</p>
-        </div>
+      <div className="grid grid-cols-1 gap-4 mt-8">
         <button
-          onClick={shareTool}
-          className="w-full flex items-center justify-center gap-3 py-4 relative overflow-hidden rounded-[20px] font-black group transition-all shadow-xl shadow-indigo-500/30 hover:shadow-indigo-500/50 active:scale-[0.98] ring-4 ring-indigo-500/10 hover:ring-indigo-500/30 border border-indigo-500/20 bg-indigo-600 text-white"
+          onClick={() => setViewState('CONTACT')}
+          className={getCardStyle('contact')}
         >
-          {/* Background Gradient - Animated */}
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-700"></div>
+          <div className="flex items-center gap-5">
+            <div className={`p-4 rounded-2xl transition-all ${!isContactsDone ? 'bg-emerald-500 text-white animate-pulse' : 'bg-emerald-100/50 text-emerald-600'}`}>
+              <UserPlus size={26} />
+            </div>
+            <div className="text-left">
+              <h3 className="font-black text-[16px] text-slate-800 tracking-tight">Paso 1: Contactar</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isContactsDone ? '¡Completado!' : '¡Conecta y Conquista!'}</p>
+            </div>
+          </div>
+          <div className="bg-slate-50 p-3 rounded-full transition-all shadow-sm">
+            {isContactsDone ? <CheckCircle2 size={18} className="text-emerald-500" /> : <ChevronRight size={18} strokeWidth={4} className="text-emerald-500" />}
+          </div>
+        </button>
 
-          {/* Shine Effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
+        <button
+          onClick={() => setViewState('FOLLOWUP')}
+          disabled={!isContactsDone}
+          className={getCardStyle('followup')}
+        >
+          <div className="flex items-center gap-5">
+            <div className={`p-4 rounded-2xl transition-all ${isContactsDone && !isFollowUpsDone ? 'bg-blue-500 text-white animate-pulse' : 'bg-blue-100/50 text-blue-600'}`}>
+              <MessageCircle size={26} />
+            </div>
+            <div className="text-left">
+              <h3 className="font-black text-[16px] text-slate-800 tracking-tight">Paso 2: Seguimiento</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{!isContactsDone ? 'Bloqueado' : isFollowUpsDone ? '¡Completado!' : 'Cierra tratos hoy'}</p>
+            </div>
+          </div>
+          <div className="bg-slate-50 p-3 rounded-full transition-all shadow-sm">
+            {isFollowUpsDone ? <CheckCircle2 size={18} className="text-blue-500" /> : <ChevronRight size={18} strokeWidth={4} className="text-blue-500" />}
+          </div>
+        </button>
 
-          <Share2 size={20} className="relative z-10 group-hover:rotate-12 transition-transform" />
-          <span className="text-sm tracking-tight uppercase relative z-10">Compartir esta Herramienta</span>
+        <button
+          onClick={() => setShowPostModal(true)}
+          disabled={!isFollowUpsDone}
+          className={getCardStyle('post')}
+        >
+          <div className="flex items-center gap-5">
+            <div className={`p-4 rounded-2xl transition-all ${isFollowUpsDone ? 'bg-pink-500 text-white animate-pulse' : 'bg-pink-100/50 text-pink-600'}`}>
+              <Megaphone size={26} />
+            </div>
+            <div className="text-left">
+              <h3 className="font-black text-[16px] text-slate-800 tracking-tight">Paso 3: Publicar</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{!isFollowUpsDone ? 'Bloqueado' : '¡Impacta y Crece!'}</p>
+            </div>
+          </div>
+          <div className="bg-slate-50 p-3 rounded-full transition-all shadow-sm">
+            <ChevronRight size={18} strokeWidth={4} className="text-pink-500" />
+          </div>
+        </button>
+
+        <button
+          onClick={() => setViewState('OBJECTIONS')}
+          className={getCardStyle('objections')}
+        >
+          <div className="flex items-center gap-5">
+            <div className="bg-amber-100/50 p-4 rounded-2xl text-amber-600 group-hover:bg-amber-500 group-hover:text-white transition-all">
+              <ShieldCheck size={26} />
+            </div>
+            <div className="text-left">
+              <h3 className="font-black text-[16px] text-slate-800 tracking-tight">Biblioteca de Objeciones</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Herramienta de Apoyo</p>
+            </div>
+          </div>
+          <div className="bg-slate-50 p-3 rounded-full transition-all shadow-sm">
+            <ChevronRight size={18} strokeWidth={4} className="text-slate-400" />
+          </div>
         </button>
       </div>
 
+      <TaskTracker
+        onNavigate={setViewState}
+        onAddPoints={addPoints}
+      />
 
-      {/* POST CREATION MODAL */}
+
+
       {showPostModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-lg h-[90vh] sm:h-auto sm:rounded-[32px] rounded-t-[32px] shadow-2xl overflow-y-auto animate-in slide-in-from-bottom duration-300 relative">
@@ -338,15 +460,23 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
                 goals={goals}
                 onPostComplete={(isRescue) => {
                   onRecordPost(isRescue);
-                  setTimeout(() => setShowPostModal(false), 2500); // Close after success anim
                 }}
+                onNavigate={() => setShowPostModal(false)}
               />
             </div>
           </div>
         </div>
       )}
 
-      {/* Share Modal */}
+      {showPaywall && (
+        <PaywallModal
+          onClose={() => setShowPaywall(false)}
+          onSuccess={() => {
+            setShowPaywall(false);
+          }}
+        />
+      )}
+
       {showShareModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 relative">
@@ -366,10 +496,20 @@ export const HomeView: React.FC<HomeViewProps> = ({ setViewState, progress, goal
 
             <div className="p-5 bg-slate-50 flex gap-3">
               <button onClick={handleNativeShare} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg">Compartir</button>
-              <button onClick={() => handleCopy(shareText)} className="flex-none bg-white border border-slate-200 p-3 rounded-xl">{copied ? <Check size={20} /> : <Copy size={20} />}</button>
+              <button onClick={() => handleCopy(shareText)} className={`flex-none bg-white border border-slate-200 p-3 rounded-xl transition-all ${!copied ? 'animate-icon-pulse' : ''}`}>{copied ? <Check size={20} /> : <Copy size={20} />}</button>
             </div>
           </div>
         </div>
+      )}
+
+      {showShareToolModal && (
+        <ShareToolModal
+          onClose={() => setShowShareToolModal(false)}
+          onShare={() => {
+            shareTool();
+            setShowShareToolModal(false);
+          }}
+        />
       )}
     </div>
   );

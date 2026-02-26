@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import {
     Zap, Copy, CheckCircle2, Sparkles, Palette,
-    Megaphone, Check, Flame, ArrowRight, Lightbulb, Share2, ArrowLeft
+    Megaphone, Check, Flame, ArrowRight, Lightbulb, Share2, ArrowLeft, X, Trophy
 } from 'lucide-react';
 import { generateSocialPost, SocialStrategy } from '../services/geminiService';
 import { triggerMagic } from '../utils/magic';
-import { UserGoals } from '../types';
+import { useAppContext } from '../contexts/AppContext';
 import { VoiceInput } from '../components/VoiceInput';
 import { ActionCard } from '../components/ActionCard';
+import { DailyPostInput } from '../components/DailyPostInput';
+import { DailyPostShareModal } from '../components/DailyPostShareModal';
 
 interface DailyPostViewProps {
     onPostComplete?: (isRescue: boolean) => void;
-    goals: UserGoals;
+    onRecordAction?: () => void;
+    onNavigate?: (view: any) => void;
 }
 
 // --- STRATEGY ROTATION SYSTEM ---
@@ -25,13 +28,31 @@ const DAILY_STRATEGIES = [
     { day: 6, theme: "Personal & Relax", hook: "Desconectando para reconectar...", prompt: "¿Qué haces para RECARGAR energía?", icon: "🔋" },
 ];
 
-export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, goals }) => {
+export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, onRecordAction, onNavigate }) => {
+    const { goals } = useAppContext();
     const [step, setStep] = useState(1); // Start directly at Step 1 (Input)
     const [customContext, setCustomContext] = useState('');
     const [loading, setLoading] = useState(false);
     const [strategy, setStrategy] = useState<SocialStrategy | null>(null);
     const [copiedAll, setCopiedAll] = useState(false);
     const [isCompleted, setIsCompleted] = useState(false);
+    const [showFeedback, setShowFeedback] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
+
+    const handleResult = (result: 'success' | 'later') => {
+        if (result === 'success') {
+            triggerMagic();
+            alert("¡Esa es la actitud! 🔥 Logro registrado.");
+
+            // Finalize action (give extra reward or just finish)
+            if (onPostComplete) {
+                onPostComplete(false);
+            }
+        }
+
+        setIsCompleted(true);
+        setShowFeedback(false);
+    };
 
     // Get Today's Strategy
     const todayIndex = new Date().getDay();
@@ -63,29 +84,60 @@ export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, go
         triggerMagic();
         onPostComplete(false);
         setIsCompleted(true);
-        setTimeout(() => { setIsCompleted(false); setStep(0); setCustomContext(''); }, 3000);
+        // We don't force feedback here if they didn't copy, 
+        // they chose to finish manually.
+    };
+
+    const getShareText = () => {
+        if (!strategy) return "";
+        const shareUrl = window.location.origin;
+        const promoText = `\n\n🚀 Creado con Networker Pro: ${shareUrl}`;
+        return `🔥 ¡Acabo de terminar mi estrategia de hoy!\n\nTema: ${currentStrategy.theme}\n🚀 ${strategy.mainPost.substring(0, 50)}...${promoText}`;
     };
 
     const handleShareResult = async () => {
         if (!strategy) return;
+        setShowShareModal(true);
+    };
 
-        const shareUrl = window.location.origin;
-        const promoText = `\n\n🚀 Creado con MLM Progreso Diario: ${shareUrl}`;
-        const shareText = `🔥 ¡Acabo de terminar mi estrategia de hoy!\n\nTema: ${currentStrategy.theme}\n🚀 ${strategy.mainPost.substring(0, 50)}...${promoText}`;
+    const handleWhatsAppShare = () => {
+        const text = getShareText();
+        const waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+        window.location.href = waUrl;
+        setShowShareModal(false);
+    };
 
+    const handleNativeShare = async () => {
+        const text = getShareText();
         if (navigator.share) {
             try {
                 await navigator.share({
                     title: 'Mi Estrategia del Día',
-                    text: shareText,
+                    text: text,
                 });
+                setShowShareModal(false);
             } catch (err) {
                 console.log('Error sharing', err);
             }
         } else {
-            navigator.clipboard.writeText(shareText);
-            alert('¡Enlace copiado! Compártelo con tu equipo.');
+            handleCopyShareText();
         }
+    };
+
+    const handleCopyShareText = () => {
+        const text = getShareText();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text);
+        } else {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try { document.execCommand('copy'); } catch (err) { }
+            document.body.removeChild(textArea);
+        }
+        alert('¡Enlace copiado! Compártelo con tu equipo.');
+        setShowShareModal(false);
     };
 
     const handleCopyAll = () => {
@@ -100,8 +152,21 @@ export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, go
         }
 
         if (strategy.imageHint) fullText += `\n\n📸 MISIÓN VISUAL:\n${strategy.imageHint}`;
-        navigator.clipboard.writeText(fullText);
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(fullText);
+        } else {
+            const textArea = document.createElement("textarea");
+            textArea.value = fullText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try { document.execCommand('copy'); } catch (err) { }
+            document.body.removeChild(textArea);
+        }
+
+        if (onRecordAction) onRecordAction(); // Give points on copy
         setCopiedAll(true);
+        setShowFeedback(true);
         setTimeout(() => setCopiedAll(false), 2000);
     };
 
@@ -137,128 +202,14 @@ export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, go
     // --- VIEW 1: INPUT CONTEXT ---
     if (step === 1) {
         return (
-            <div className="max-w-xl mx-auto pt-4 pb-20 animate-in slide-in-from-bottom duration-500 px-4">
-                <button onClick={() => setStep(0)} className="mb-6 text-slate-400 hover:text-indigo-600 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-                    <ArrowLeft size={16} /> Cancelar
-                </button>
-
-                <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[40px] shadow-2xl shadow-indigo-200/50 border border-white/40 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
-                        <Flame size={120} />
-                    </div>
-
-                    <div className="relative z-10">
-                        {/* Header Badge */}
-                        <div className="flex items-center gap-3 mb-6 bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
-                            <span className="text-3xl">{currentStrategy.icon}</span>
-                            <div>
-                                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Misión de Hoy</p>
-                                <h3 className="text-lg font-black text-indigo-900 leading-tight">
-                                    {currentStrategy.theme}
-                                </h3>
-                            </div>
-                        </div>
-
-                        {/* Step 1: Hook */}
-                        <div className="relative">
-                            <div className="absolute -left-3 top-6 bottom-0 w-0.5 bg-indigo-100 hidden sm:block"></div>
-                            <div className="bg-white border-2 border-indigo-100 rounded-3xl p-5 mb-2 relative">
-                                <span className="absolute -top-3 left-4 bg-indigo-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
-                                    Paso 1
-                                </span>
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2 mb-2">
-                                    Empieza con esta frase:
-                                </p>
-                                <div className="flex items-center gap-3 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100/50">
-                                    <p className="text-lg font-bold text-indigo-900 italic flex-1">
-                                        "{currentStrategy.hook}"
-                                    </p>
-                                    <button
-                                        onClick={() => navigator.clipboard.writeText(currentStrategy.hook)}
-                                        className="p-2 bg-white rounded-full text-indigo-500 shadow-sm hover:scale-110 active:scale-95 transition-all"
-                                        title="Copiar frase"
-                                    >
-                                        <Copy size={16} />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Arrow Connector */}
-                        <div className="flex justify-center -my-3 relative z-20">
-                            <div className="bg-white p-1 rounded-full border border-indigo-50 text-indigo-300">
-                                <ArrowRight size={20} className="rotate-90" />
-                            </div>
-                        </div>
-
-                        {/* Step 2: Input */}
-                        <div className="relative mb-6">
-                            <div className="bg-white border-2 border-slate-100 rounded-3xl p-5 pt-8 mt-2 relative shadow-sm">
-                                <span className="absolute -top-3 left-4 bg-slate-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
-                                    Paso 2
-                                </span>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">
-                                    Completa la idea ({currentStrategy.prompt}):
-                                </label>
-
-                                <div className="relative group">
-                                    <textarea
-                                        value={customContext}
-                                        onChange={(e) => setCustomContext(e.target.value)}
-                                        placeholder="Escribe aquí tu parte de la historia..."
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 h-24 text-slate-700 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 transition-all resize-none text-base font-medium placeholder:text-slate-300"
-                                        autoFocus
-                                    />
-                                    <div className="absolute bottom-3 right-3">
-                                        <VoiceInput onTranscript={(t) => setCustomContext(prev => prev ? `${prev} ${t}` : t)} />
-                                    </div>
-                                </div>
-
-                                {/* Context Chips */}
-                                <div className="mt-4 flex flex-wrap gap-2">
-                                    {[
-                                        { label: '☕ Café con prospecto', text: 'Tomando un café con un futuro líder.' },
-                                        { label: '💻 Zoom de equipo', text: 'Conectado con el equipo en un entrenamiento épico.' },
-                                        { label: '📖 Aprendizaje', text: 'Aprendiendo nuevas estrategias de crecimiento.' },
-                                        { label: '🚀 Lanzamiento', text: 'Preparando algo gigante para esta semana.' },
-                                        { label: '🔥 Momento On', text: 'Enfocado y listo para el siguiente nivel.' }
-                                    ].map(chip => (
-                                        <button
-                                            key={chip.label}
-                                            onClick={() => setCustomContext(prev => prev ? `${prev} ${chip.text}` : chip.text)}
-                                            className="text-[10px] font-bold bg-white border border-slate-200 text-slate-500 px-3 py-1.5 rounded-full hover:border-indigo-300 hover:text-indigo-600 transition-all active:scale-90"
-                                        >
-                                            {chip.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Step 3: Action */}
-                        <button
-                            onClick={handleGenerate}
-                            disabled={loading || !customContext.trim()}
-                            className={`w-full py-4 rounded-2xl font-black text-white shadow-xl transition-all flex flex-col items-center justify-center gap-1 uppercase tracking-widest text-sm relative overflow-hidden group ${loading || !customContext.trim()
-                                ? 'bg-slate-300 cursor-not-allowed'
-                                : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:scale-[1.02] active:scale-95 shadow-indigo-200'
-                                }`}
-                        >
-                            {loading && <div className="absolute inset-0 bg-white/20 animate-pulse" />}
-                            {loading ? (
-                                <span>Mezclando Ingredientes...</span>
-                            ) : (
-                                <>
-                                    <div className="flex items-center gap-2">
-                                        ¡Mezclar y Crear Magia! <Sparkles size={18} className="group-hover:rotate-12 transition-transform" />
-                                    </div>
-                                    <span className="text-xs opacity-90 normal-case font-bold">La IA unirá todo en un Post perfecto</span>
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <DailyPostInput
+                currentStrategy={currentStrategy}
+                customContext={customContext}
+                setCustomContext={setCustomContext}
+                handleGenerate={handleGenerate}
+                loading={loading}
+                onCancel={() => setStep(0)}
+            />
         );
     }
 
@@ -292,7 +243,7 @@ export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, go
                         </span>
                         <button
                             onClick={handleCopyAll}
-                            className={`text-[10px] font-black uppercase px-4 py-2 rounded-full transition-all flex items-center gap-2 ${copiedAll ? 'bg-emerald-500 text-white' : 'bg-white/50 border border-white/40 text-slate-500 hover:bg-white'
+                            className={`text-[10px] font-black uppercase px-4 py-2 rounded-full transition-all flex items-center gap-2 ${copiedAll ? 'bg-emerald-500 text-white' : 'bg-white/50 border border-white/40 text-slate-500 hover:bg-white animate-icon-pulse'
                                 }`}
                         >
                             {copiedAll ? <Check size={14} /> : <Copy size={14} />}
@@ -301,42 +252,72 @@ export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, go
                     </div>
 
                     <div className="prose prose-sm max-w-none relative z-10">
-                        <ActionCard text={`${strategy.mainPost}\n\n${strategy.cta}`} />
+                        <ActionCard text={`${strategy.mainPost}\n\n${strategy.cta}`} hideCopy={true} />
                     </div>
                 </div>
 
-                {/* Finish Button */}
-                <button
-                    onClick={handleComplete}
-                    disabled={isCompleted}
-                    className={`w-full py-5 rounded-[24px] font-black text-white shadow-xl transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-sm ${isCompleted
-                        ? 'bg-emerald-500 scale-95 ring-4 ring-emerald-200'
-                        : 'bg-indigo-600 hover:bg-indigo-700 hover:-translate-y-1 shadow-indigo-200'
-                        }`}
-                >
-                    {isCompleted ? (
-                        <>
-                            <CheckCircle2 size={20} /> ¡Día Completado!
-                        </>
-                    ) : (
-                        <>
+                {/* Dynamic Action Area */}
+                <div className="mt-8">
+                    {!isCompleted && !showFeedback && (
+                        <button
+                            onClick={handleComplete}
+                            disabled={isCompleted}
+                            className="w-full py-5 rounded-[24px] font-black text-white shadow-xl transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-sm bg-indigo-600 hover:bg-indigo-700 hover:-translate-y-1 shadow-indigo-200"
+                        >
                             <Megaphone size={20} /> Publicar y Ganar Puntos
-                        </>
+                        </button>
                     )}
-                </button>
 
-                {isCompleted && (
-                    <button
-                        onClick={handleShareResult}
-                        className="w-full mt-4 py-3 rounded-[20px] bg-slate-100 text-slate-600 font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors animate-in fade-in slide-in-from-bottom duration-500"
-                    >
-                        <Share2 size={16} /> Compartir Logro
-                    </button>
-                )}
+                    {showFeedback && !isCompleted && (
+                        <div className="bg-slate-900 p-6 rounded-[32px] text-white text-center animate-in zoom-in slide-in-from-bottom-2 shadow-xl ring-2 ring-indigo-400/20">
+                            <p className="font-bold mb-3 text-xl">🚀 ¡Acción Detectada!</p>
+                            <p className="text-sm text-slate-300 mb-6">¿Cuál fue el resultado de tu publicación?</p>
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => handleResult('later')}
+                                    className="flex-1 py-4 bg-slate-800 rounded-2xl hover:bg-slate-700 transition-colors font-black uppercase text-[10px] tracking-widest text-slate-400"
+                                >
+                                    👀 Visto / Nada
+                                </button>
+                                <button
+                                    onClick={() => handleResult('success')}
+                                    className="flex-1 py-4 bg-emerald-500 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 hover:scale-105 transition-all text-white flex items-center justify-center gap-2"
+                                >
+                                    🔥 ¡Interesado!
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
-                <button onClick={() => setStep(0)} className="w-full text-center mt-6 text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600">
+                    {isCompleted && (
+                        <div className="space-y-4 animate-in fade-in zoom-in duration-500">
+                            <div className="w-full py-6 rounded-[32px] bg-emerald-500 text-white font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 shadow-xl shadow-emerald-200">
+                                <CheckCircle2 size={24} /> ¡Día Completado!
+                            </div>
+
+                            <button
+                                onClick={handleShareResult}
+                                className="w-full py-4 rounded-[20px] bg-slate-100 text-slate-600 font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors"
+                            >
+                                <Share2 size={16} /> Compartir Logro con el Equipo
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                <button onClick={() => { if (onNavigate) onNavigate('HOME', true); }} className="w-full text-center mt-6 text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600">
                     Volver al Inicio
                 </button>
+
+                {/* Share Achievement Modal */}
+                {showShareModal && (
+                    <DailyPostShareModal
+                        onClose={() => setShowShareModal(false)}
+                        onWhatsAppShare={handleWhatsAppShare}
+                        onNativeShare={handleNativeShare}
+                        onCopyShareText={handleCopyShareText}
+                    />
+                )}
             </div>
         );
     }
