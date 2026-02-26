@@ -19,12 +19,42 @@ const elevenLabsKey = import.meta.env?.VITE_ELEVENLABS_API_KEY || "";
 const voiceId = "pNInz6obpgDQGcFmaJgB"; // Voz "Adam" o similar profesional
 
 // --- VOIX ENGINE (GOOGLE CLOUD TTS) ---
-const speakWithBrowser = (text: string): Promise<void> => {
-  return new Promise((resolve) => {
+const speakWithBrowser = async (text: string): Promise<void> => {
+  return new Promise(async (resolve) => {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text.replace(/\*/g, ''));
     utterance.lang = 'es-ES';
-    utterance.rate = 1.0;
+
+    // Mejorar la voz robótica: Buscar voces premium/naturales en el dispositivo
+    let voices = window.speechSynthesis.getVoices();
+
+    // Solucionar bug de Android/iOS donde las voces están vacías inicialmente
+    if (voices.length === 0) {
+      await new Promise<void>(r => {
+        let fired = false;
+        const handle = () => { if (!fired) { fired = true; r(); window.speechSynthesis.removeEventListener('voiceschanged', handle); } };
+        window.speechSynthesis.addEventListener('voiceschanged', handle);
+        setTimeout(() => { if (!fired) { fired = true; r(); } }, 1000);
+      });
+      voices = window.speechSynthesis.getVoices();
+    }
+
+    const isES = (lang: string) => lang.startsWith('es');
+    const isPremium = (name: string) =>
+      name.includes('Google') || name.includes('Neural') ||
+      name.includes('Natural') || name.includes('Sabina') ||
+      name.includes('Premium');
+
+    let selectedVoice = voices.find(v => isES(v.lang) && isPremium(v.name));
+    if (!selectedVoice) {
+      selectedVoice = voices.find(v => isES(v.lang));
+    }
+
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+    }
+
+    utterance.rate = 1.05; // Slightly faster for energy
     utterance.pitch = 1.0;
     utterance.onend = () => resolve();
     utterance.onerror = () => resolve();
@@ -464,11 +494,18 @@ REGLAS DE ORO:
 
 El usuario acaba de decir: `;
 
-export const generateEliteAssistantResponse = async (userMessage: string, context?: any): Promise<string> => {
+export const generateEliteAssistantResponse = async (userMessage: string, history: { role: string, content: string }[] = []): Promise<string> => {
   try {
+    // Inject conversation history string into the prompt for memory
+    const formattedHistory = history.length > 0
+      ? "\n--- Historial reciente ---\n" + history.map(m => `${m.role === 'user' ? 'Usuario' : 'Asistente'}: ${m.content}`).join('\n') + "\n------------------------\n"
+      : "";
+
+    const finalPrompt = ELITE_ASSISTANT_PROMPT + formattedHistory + "\nUsuario actual dice: " + userMessage + "\nAsistente:";
+
     const data = await callAiService("gemini", {
-      prompt: ELITE_ASSISTANT_PROMPT + userMessage,
-      systemInstruction: "You are the Elite Network Marketing Assistant by Frank.",
+      prompt: finalPrompt,
+      systemInstruction: "You are the Elite Network Marketing Assistant by Frank. Keep in mind the conversation history to maintain context.",
       temperature: 0.8,
     });
 

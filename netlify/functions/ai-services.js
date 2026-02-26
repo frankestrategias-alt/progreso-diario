@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+
 
 export const handler = async (event) => {
     if (event.httpMethod !== "POST") {
@@ -60,29 +60,48 @@ export const handler = async (event) => {
                 };
             }
 
-            const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
             const modelId = "gemini-2.0-flash";
-
             const { prompt, systemInstruction, temperature, responseMimeType, maxOutputTokens } = payload;
 
-            const config = {
-                temperature: temperature || 0.7
+            const reqBody = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                generationConfig: {
+                    temperature: temperature || 0.7,
+                }
             };
 
-            if (systemInstruction) config.systemInstruction = systemInstruction;
-            if (responseMimeType) config.responseMimeType = responseMimeType;
-            if (maxOutputTokens) config.maxOutputTokens = maxOutputTokens;
+            if (systemInstruction) {
+                reqBody.systemInstruction = { parts: [{ text: systemInstruction }] };
+            }
+            if (responseMimeType) {
+                reqBody.generationConfig.responseMimeType = responseMimeType;
+            }
+            if (maxOutputTokens) {
+                reqBody.generationConfig.maxOutputTokens = maxOutputTokens;
+            }
 
-            const response = await ai.models.generateContent({
-                model: modelId,
-                contents: prompt,
-                config: config
+            const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${GEMINI_API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(reqBody)
             });
+
+            const dataContent = await geminiResponse.json();
+
+            if (!geminiResponse.ok) {
+                return {
+                    statusCode: 500,
+                    headers: { "Access-Control-Allow-Origin": "*" },
+                    body: JSON.stringify({ error: dataContent.error || "Gemini API error" })
+                };
+            }
+
+            const text = dataContent.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
             return {
                 statusCode: 200,
                 headers: { "Access-Control-Allow-Origin": "*" },
-                body: JSON.stringify({ text: response.text })
+                body: JSON.stringify({ text })
             };
         }
 

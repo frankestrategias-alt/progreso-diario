@@ -10,7 +10,7 @@ echo 2. Abre el navegador de tu celular (Chrome o Safari).
 echo.
 echo 3. Escribe EXACTAMENTE esta direccion en la barra:
 echo.
-echo      http://192.168.1.2:3000
+echo      http://192.168.1.2:3001
 echo.
 echo =======================================================
 echo.

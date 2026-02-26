@@ -29,8 +29,8 @@ const EliteChatBubble: React.FC = () => {
         setIsTyping(true);
 
         try {
-            // El cerebro: Enviamos a Gemini usando la funcion de Elite Assistant
-            const response = await generateEliteAssistantResponse(userMsg);
+            // El cerebro: Enviamos a Gemini usando la funcion de Elite Assistant y pasamos el historial
+            const response = await generateEliteAssistantResponse(userMsg, messages);
             setIsTyping(false);
 
             setMessages(prev => [...prev, { role: 'ai', content: response }]);
