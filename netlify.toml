@@ -5,3 +5,9 @@
 [context.production.environment]
   NODE_VERSION = "20"
   # La clave debe estar configurada en el panel de Netlify como VITE_GEMINI_API_KEY
+
+[dev]
+  framework = "#custom"
+  command = "npx vite --port 3001"
+  targetPort = 3001
+  port = 8890

@@ -1,333 +1,212 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import confetti from 'canvas-confetti';
-import { HomeView } from './views/HomeView';
+import { triggerHaptic } from './utils/magic';
+import './services/firebase'; // Inicializa Firebase y Analytics
 import { HelpCircle } from 'lucide-react';
-import { ContactView } from './views/ContactView';
-import { FollowUpView } from './views/FollowUpView';
-import { ObjectionView } from './views/ObjectionView';
-import { GoalsView } from './views/GoalsView';
-import { DailyPostView } from './views/DailyPostView';
-import { StatsView } from './views/StatsView';
+
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+
+const HomeView = React.lazy(() => import('./views/HomeView').then(module => ({ default: module.HomeView })));
+const ContactView = React.lazy(() => import('./views/ContactView').then(module => ({ default: module.ContactView })));
+const FollowUpView = React.lazy(() => import('./views/FollowUpView').then(module => ({ default: module.FollowUpView })));
+const ObjectionView = React.lazy(() => import('./views/ObjectionView').then(module => ({ default: module.ObjectionView })));
+const GoalsView = React.lazy(() => import('./views/GoalsView').then(module => ({ default: module.GoalsView })));
+const DailyPostView = React.lazy(() => import('./views/DailyPostView').then(module => ({ default: module.DailyPostView })));
+const StatsView = React.lazy(() => import('./views/StatsView').then(module => ({ default: module.StatsView })));
+const TeamView = React.lazy(() => import('./views/TeamView').then(module => ({ default: module.TeamView })));
+const LeaderDashboard = React.lazy(() => import('./views/LeaderDashboard').then(module => ({ default: module.LeaderDashboard })));
+const MarketplaceView = React.lazy(() => import('./views/MarketplaceView').then(module => ({ default: module.MarketplaceView })));
+
 import { LevelUpModal } from './components/LevelUpModal';
 import { HelpModal } from './components/HelpModal';
 import { Layout } from './components/Layout';
 import { Onboarding } from './components/Onboarding';
-import { ViewState, DailyProgress, UserGoals, DEFAULT_GOALS, DEFAULT_PROGRESS, GamificationState, DEFAULT_GAMIFICATION, LEVELS } from './types';
+import { DuplicationModal } from './components/DuplicationModal';
+import { deserializeGoals } from './services/duplicationService';
 
-const MISSIONS = [
-  { id: 'm1', description: 'Lee 10 páginas de un libro de liderazgo', xpReward: 30 },
-  { id: 'm2', description: 'Revisa un video de entrenamiento de tu compañía', xpReward: 30 },
-  { id: 'm3', description: 'Envía un mensaje de gratitud a alguien de tu equipo', xpReward: 30 },
-  { id: 'm4', description: 'Organiza tu agenda para el resto de la semana', xpReward: 30 },
-  { id: 'm5', description: 'Haz 2 minutos de respiración profunda antes de empezar', xpReward: 30 },
-];
+import { ViewState, DailyProgress, UserGoals, GamificationState, LEVELS } from './types';
+import { useAppContext } from './contexts/AppContext';
 
-const playSound = (type: 'action' | 'success' | 'levelUp') => {
-  const sounds = {
-    action: 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3', // Subtle Click
-    success: 'https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3', // Sparkle
-    levelUp: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3', // Fanfare
-  };
-  const audio = new Audio(sounds[type]);
-  audio.volume = 0.15;
-  audio.play().catch(() => { });
-};
+import { useAppEngine, playSound } from './hooks/useAppEngine';
 
 function App() {
-  const [view, setView] = useState<ViewState>('HOME');
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const getViewFromPath = (): ViewState => {
+    const path = location.pathname;
+    if (path.startsWith('/team')) return 'TEAM';
+    if (path.startsWith('/leader')) return 'LEADER';
+    if (path.startsWith('/contact')) return 'CONTACT';
+    if (path.startsWith('/followup')) return 'FOLLOWUP';
+    if (path.startsWith('/objections')) return 'OBJECTIONS';
+    if (path.startsWith('/goals')) return 'GOALS';
+    if (path.startsWith('/daily-post')) return 'DAILY_POST';
+    if (path.startsWith('/stats')) return 'STATS';
+    if (path.startsWith('/marketplace')) return 'MARKETPLACE';
+    return 'HOME';
+  };
+
+  const view = getViewFromPath();
+
   const [showHelp, setShowHelp] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboardingSeen'));
 
-  // FORCE CACHE CLEANING (VERSIONING)
-  const APP_VERSION = '1.2.0'; // Increment this to force update
+  // DUPLICATION PROTOCOL: Check for incoming shared goals (Synchronous to avoid flash)
+  const [incomingGoals, setIncomingGoals] = useState<UserGoals | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hashPart = window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '';
+    const hashParams = new URLSearchParams(hashPart);
+    const dupParam = params.get('dup') || hashParams.get('dup');
+
+    if (dupParam) {
+      console.log('📡 Protocolo de Duplicación detectado...');
+      const decoded = deserializeGoals(dupParam);
+      if (decoded) {
+        console.log('✅ Visión de Líder cargada:', decoded.companyName);
+        return decoded;
+      }
+    }
+    return null;
+  });
+
+  // FORCE CACHE CLEANING (VERSIONING) & URL Cleanup
+  const APP_VERSION = '1.7.2-ultra'; // Super Nuke - Chrome fix
   useEffect(() => {
     const savedVersion = localStorage.getItem('appVersion');
-    if (savedVersion !== APP_VERSION) {
-      // Version mismatch: Clear potential corrupt data or old cache
-      console.log('New version detected. Cleaning cache...');
-
-      // Optional: Keep critical data if structured correctly, but for this fix we might want to be aggressive 
-      // or just trust the migration logic we just added. 
-      // Let's just update the version so migration logic runs.
+    if (savedVersion && savedVersion !== APP_VERSION) {
+      console.log('🚀 Nueva versión detectada. Limpiando caché...', APP_VERSION);
       localStorage.setItem('appVersion', APP_VERSION);
 
-      // If we want to be nuclear:
-      // localStorage.clear(); 
-      // localStorage.setItem('appVersion', APP_VERSION);
-      // window.location.reload();
-    }
-  }, []);
-
-  // History Management
-  useEffect(() => {
-    // Handle browser back button
-    const handlePopState = (event: PopStateEvent) => {
-      if (event.state && event.state.view) {
-        setView(event.state.view);
+      // Force reload ignoring cache if version changed
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          Promise.all(names.map(name => caches.delete(name))).then(() => {
+            (window as any).location.reload();
+          });
+        });
       } else {
-        setView('HOME');
+        (window as any).location.reload();
+      }
+    } else if (!savedVersion) {
+      localStorage.setItem('appVersion', APP_VERSION);
+    }
+
+    // Global Error Handler for Chunk Load Failures (Anti-White Screen)
+    const handleError = (e: ErrorEvent | PromiseRejectionEvent) => {
+      const message = (e as any).message || '';
+      if (message.includes('Loading chunk') || message.includes('Failed to fetch dynamically imported module')) {
+        console.warn('⚠️ Fallo de carga detectado. Reparando...');
+        if ('caches' in window) {
+          caches.keys().then(names => {
+            Promise.all(names.map(name => caches.delete(name))).then(() => {
+              (window as any).location.reload();
+            });
+          });
+        } else {
+          (window as any).location.reload();
+        }
       }
     };
 
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleError);
+
+    // Clean URL if we detected a duplication link on init
+    if (incomingGoals) {
+      const newUrl = window.location.origin + window.location.pathname + window.location.hash.split('?')[0];
+      window.history.replaceState({}, '', newUrl);
+    }
   }, []);
 
-  const navigateTo = (newView: ViewState) => {
-    setView(newView);
-    window.history.pushState({ view: newView }, '', `#${newView.toLowerCase()}`);
-  };
-
-  // Persistent State
-  const [goals, setGoals] = useState<UserGoals>(() => {
-    const saved = localStorage.getItem('userGoals');
-    return saved ? JSON.parse(saved) : DEFAULT_GOALS;
-  });
-
-  const [progress, setProgress] = useState<DailyProgress>(() => {
-    const saved = localStorage.getItem('dailyProgress');
-    return saved ? JSON.parse(saved) : DEFAULT_PROGRESS;
-  });
-
-  const [gamification, setGamification] = useState<GamificationState>(() => {
-    const saved = localStorage.getItem('gamification');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // MIGRATION: If we have 'xp' but not 'points' (legacy data), migrate it.
-      if (parsed.points === undefined && parsed.xp !== undefined) {
-        return { ...DEFAULT_GAMIFICATION, ...parsed, points: parsed.xp };
-      }
-      // SAFETY: Ensure points is a number
-      return { ...DEFAULT_GAMIFICATION, ...parsed, points: Number(parsed.points) || 0 };
+  const navigateTo = (newView: ViewState, forceRefresh = false) => {
+    if (forceRefresh && newView === 'HOME') {
+      window.location.href = window.location.origin + '/';
+      return;
     }
-    return DEFAULT_GAMIFICATION;
-  });
+    const paths: Record<ViewState, string> = {
+      HOME: '/',
+      TEAM: '/team',
+      LEADER: '/leader',
+      CONTACT: '/contact',
+      FOLLOWUP: '/followup',
+      OBJECTIONS: '/objections',
+      GOALS: '/goals',
+      DAILY_POST: '/daily-post',
+      STATS: '/stats',
+      MARKETPLACE: '/marketplace'
+    };
+    navigate(paths[newView]);
+  };
 
-  const [showLevelUp, setShowLevelUp] = useState<{ level: number, title: string } | null>(null);
+  const { setGoals, setProgress } = useAppContext();
+  const {
+    showLevelUp,
+    setShowLevelUp,
+    addPoints,
+    completeMission,
+    handleRecordContact,
+    handleRecordFollowUp,
+    handleRecordPost
+  } = useAppEngine();
 
-  // Effects to save state
-  useEffect(() => {
-    localStorage.setItem('userGoals', JSON.stringify(goals));
-  }, [goals]);
+  const handleSaveGoals = (newGoals: UserGoals) => {
+    setGoals(newGoals);
+  };
 
-  useEffect(() => {
-    localStorage.setItem('dailyProgress', JSON.stringify(progress));
-  }, [progress]);
-
-  useEffect(() => {
-    localStorage.setItem('gamification', JSON.stringify(gamification));
-  }, [gamification]);
-
-  // Check Daily Reset & Streak
-  useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-
-    if (progress.lastUpdated !== today) {
-      setProgress(prev => ({
-        contactsMade: 0,
-        followUpsMade: 0,
-        postsMade: 0,
-        lastUpdated: today,
-        history: prev.history || {}
-      }));
-
-      // Streak Logic
-      const lastActive = new Date(gamification.lastActiveDate);
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-
-      const isConsecutive = lastActive.toISOString().split('T')[0] === yesterday.toISOString().split('T')[0];
-
-      if (!isConsecutive && gamification.lastActiveDate !== today) {
-        // Reset streak if missed a day (unless it's the first time today)
-        if (gamification.lastActiveDate) { // Only reset if not empty (first run)
-          setGamification(prev => ({ ...prev, streak: 0 }));
-        }
-      }
-
+  const handleJoinTeam = (code: string) => {
+    setProgress(prev => ({ ...prev, teamId: code }));
+    if (code) {
+      playSound('success');
+      // En un futuro, aquí cargaríamos la configuración del equipo desde Firebase
     }
-
-    // Mission Assignment (Ensure it runs even if progress was already updated today)
-    setGamification(prev => {
-      // Ensure points is safe
-      const currentPoints = Number(prev.points) || 0;
-
-      if (!prev.currentMission || prev.lastActiveDate !== today) {
-        const randomMission = MISSIONS[Math.floor(Math.random() * MISSIONS.length)];
-        return {
-          ...prev,
-          points: currentPoints, // Safety update
-          currentMission: { ...randomMission, completed: false }
-        };
-      }
-      return { ...prev, points: currentPoints };
-    });
-  }, []);
-
-  const addPoints = (amount: number) => {
-    setGamification(prev => {
-      const currentPoints = Number(prev.points) || 0; // Safety against NaN
-      const newPoints = currentPoints + amount;
-      const today = new Date().toISOString().split('T')[0];
-
-      // Calculate Level
-      let newLevel = prev.level;
-      let newTitle = "";
-
-      for (const l of LEVELS) {
-        if (newPoints >= l.minPoints) {
-          newLevel = l.level;
-          newTitle = l.title;
-        }
-      }
-
-      // Check Level Up
-      if (newLevel > prev.level) {
-        setShowLevelUp({ level: newLevel, title: newTitle });
-        playSound('levelUp');
-      } else {
-        playSound('success');
-      }
-
-      // Update Streak if first action today
-      let newStreak = prev.streak;
-      if (prev.lastActiveDate !== today) {
-        newStreak += 1;
-      }
-
-      return {
-        ...prev,
-        points: newPoints,
-        level: newLevel,
-        streak: newStreak,
-        lastActiveDate: today
-      };
-    });
+    navigateTo('HOME');
   };
 
-  const completeMission = () => {
-    if (gamification.currentMission && !gamification.currentMission.completed) {
-      const reward = Number(gamification.currentMission.pointsReward) || 0; // Validate reward
-      addPoints(reward);
-
-      setGamification(prev => {
-        if (!prev.currentMission) return prev;
-        return {
-          ...prev,
-          currentMission: { ...prev.currentMission, completed: true }
-        };
-      });
-
-      confetti({
-        particleCount: 150,
-        spread: 100,
-        origin: { y: 0.6 }
-      });
-    }
-  };
-
-  // Actions
-  const handleRecordContact = () => {
-    playSound('action');
-    setProgress(prev => {
-      const today = new Date().toISOString().split('T')[0];
-      const newContacts = prev.contactsMade + 1;
-      const newHistory = { ...prev.history };
-      newHistory[today] = { contacts: newContacts, followUps: prev.followUpsMade };
-
-      // Trigger confetti if goal is reached
-      if (newContacts === goals.dailyContacts) {
-        confetti({
-          particleCount: 150,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#10b981', '#3b82f6', '#f59e0b']
-        });
-      }
-
-      return { ...prev, contactsMade: newContacts, history: newHistory };
-    });
-    addPoints(10); // +10 Puntos for Contact
-  };
-
-  const handleRecordFollowUp = () => {
-    playSound('action');
-    setProgress(prev => {
-      const today = new Date().toISOString().split('T')[0];
-      const newFollowUps = prev.followUpsMade + 1;
-      const newHistory = { ...prev.history };
-      newHistory[today] = { contacts: prev.contactsMade, followUps: newFollowUps };
-
-      // Trigger confetti if goal is reached
-      if (newFollowUps === goals.dailyFollowUps) {
-        confetti({
-          particleCount: 150,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#3b82f6', '#8b5cf6', '#ec4899']
-        });
-      }
-
-      return { ...prev, followUpsMade: newFollowUps, history: newHistory };
-    });
-    addPoints(5); // +5 Puntos for FollowUp
-  };
-
-  // Pass addPoints to DailyPostView via props if needed, or handle it inside the view by passing a handler
-  const handleRecordPost = (isRescue: boolean) => {
-    setProgress(prev => ({
-      ...prev,
-      postsMade: (prev.postsMade || 0) + 1
-    }));
-    addPoints(isRescue ? 50 : 20); // +20 Puntos for normal post, +50 for rescue
-
-    // Trigger confetti
-    confetti({
-      particleCount: 200,
-      spread: 100,
-      origin: { y: 0.6 },
-      colors: ['#8b5cf6', '#ec4899', '#f59e0b']
-    });
-  };
-
-  const renderView = () => {
-    switch (view) {
-      case 'HOME':
-        return <HomeView setViewState={navigateTo} progress={progress} goals={goals} gamification={gamification} onShowHelp={() => setShowHelp(true)} onRecordPost={handleRecordPost} onCompleteMission={completeMission} />;
-      case 'CONTACT':
-        return <ContactView onRecordAction={handleRecordContact} goals={goals} />;
-      case 'FOLLOWUP':
-        return <FollowUpView onRecordAction={handleRecordFollowUp} goals={goals} />;
-      case 'OBJECTIONS':
-        return <ObjectionView goals={goals} />;
-      case 'GOALS':
-        return <GoalsView goals={goals} progress={progress} onUpdateGoals={setGoals} />;
-      case 'DAILY_POST':
-        return <DailyPostView onPostComplete={handleRecordPost} goals={goals} />;
-      case 'STATS':
-        return <StatsView progress={progress} goals={goals} onBack={() => navigateTo('HOME')} />;
-      default:
-        return <HomeView setViewState={navigateTo} progress={progress} goals={goals} gamification={gamification} onShowHelp={() => setShowHelp(true)} onRecordPost={handleRecordPost} />;
-    }
+  const renderRouterViews = () => {
+    return (
+      <Suspense fallback={<div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div></div>}>
+        <Routes>
+          <Route path="/" element={
+            <HomeView setViewState={navigateTo} onShowHelp={() => setShowHelp(true)} onRecordPost={handleRecordPost} onCompleteMission={completeMission} />
+          } />
+          <Route path="/team" element={<TeamView onJoinTeam={handleJoinTeam} onBack={() => navigateTo('HOME')} />} />
+          <Route path="/leader" element={<LeaderDashboard onBack={() => navigateTo('HOME')} />} />
+          <Route path="/contact" element={<ContactView onRecordAction={handleRecordContact} onNavigate={navigateTo} />} />
+          <Route path="/followup" element={<FollowUpView onRecordAction={handleRecordFollowUp} onNavigate={navigateTo} />} />
+          <Route path="/objections" element={<ObjectionView />} />
+          <Route path="/goals" element={<GoalsView />} />
+          <Route path="/daily-post" element={<DailyPostView onPostComplete={handleRecordPost} onRecordAction={() => addPoints(10)} onNavigate={navigateTo} />} />
+          <Route path="/stats" element={<StatsView onBack={() => navigateTo('HOME')} />} />
+          <Route path="/marketplace" element={<MarketplaceView setViewState={navigateTo} />} />
+        </Routes>
+      </Suspense>
+    );
   };
 
   const getTitle = () => {
     switch (view) {
-      case 'HOME': return 'MLM Progreso Diario';
+      case 'HOME': return 'Networker Pro';
+      case 'TEAM': return 'Estrategia de Equipo';
+      case 'LEADER': return 'Panel de Control';
       case 'CONTACT': return 'Invitar / Prospectar';
       case 'FOLLOWUP': return 'Seguimiento';
       case 'OBJECTIONS': return 'Manejo de Objeciones';
       case 'GOALS': return 'Mis Metas';
       case 'DAILY_POST': return 'Plan de Contenido';
       case 'STATS': return 'Estadísticas';
+      case 'MARKETPLACE': return 'Marketplace de Herramientas';
     }
   };
 
   return (
     <Layout
       title={getTitle()}
+      hideHeader={showOnboarding}
       showBack={view !== 'HOME'}
-      onBack={() => window.history.back()}
+      onBack={() => navigateTo('HOME', true)}
+      onNavigate={navigateTo}
+      currentView={view}
       rightContent={view === 'HOME' && (
         <button
           onClick={() => setShowHelp(true)}
@@ -338,7 +217,7 @@ function App() {
         </button>
       )}
     >
-      {renderView()}
+      {renderRouterViews()}
 
       {/* Help Modal */}
       {
@@ -358,14 +237,44 @@ function App() {
         )
       }
       {/* Onboarding Flow */}
-      {
-        showOnboarding && (
-          <Onboarding onComplete={() => {
-            localStorage.setItem('onboardingSeen', 'true');
-            setShowOnboarding(false);
-          }} />
-        )
-      }
+      {showOnboarding && !incomingGoals && (
+        <Onboarding onComplete={(company, niche) => {
+          setGoals(prev => ({ ...prev, companyName: company, productNiche: niche }));
+          localStorage.setItem('onboardingSeen', 'true');
+          setShowOnboarding(false);
+          confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+          playSound('success');
+        }} />
+      )}
+
+      {/* Duplication Protocol Modal (Receiver) */}
+      {incomingGoals && (
+        <DuplicationModal
+          incomingGoals={incomingGoals}
+          onAccept={() => {
+            setGoals(incomingGoals);
+            setIncomingGoals(null);
+            confetti({
+              particleCount: 200,
+              spread: 100,
+              origin: { y: 0.6 },
+              colors: ['#6366f1', '#a855f7', '#ec4899']
+            });
+            playSound('success');
+            // If they accepted duplication, ensure onboarding is marked as seen
+            if (showOnboarding) {
+              localStorage.setItem('onboardingSeen', 'true');
+              setShowOnboarding(false);
+            }
+          }}
+          onCancel={() => setIncomingGoals(null)}
+        />
+      )}
+
     </Layout >
   );
 }

@@ -1,0 +1,3 @@
+# Redirección 301 (Permanente) de todo el tráfico al nuevo dominio
+# Cambia https://networker-pro.netlify.app por tu URL real si es diferente
+/*  https://networker-pro.netlify.app/:splat  301!

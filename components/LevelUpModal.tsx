@@ -11,6 +11,25 @@ interface LevelUpModalProps {
 
 export const LevelUpModal: React.FC<LevelUpModalProps> = ({ level, title, onClose }) => {
 
+    const handleShare = async () => {
+        const shareText = `¡Acabo de alcanzar el Nivel ${level} (${title}) en mi sistema de prospección automática! 🚀\n\n¿Tú sigues usando Excel? Usa mi herramienta gratis aquí: https://networker-pro.netlify.app/`;
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: '¡Nuevo Nivel Desbloqueado!',
+                    text: shareText,
+                });
+            } catch (error) {
+                console.log('Error sharing', error);
+            }
+        } else {
+            // Fallback to WhatsApp
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+    };
+
     useEffect(() => {
         // Trigger confetti on mount
         const duration = 3000;
@@ -66,23 +85,33 @@ export const LevelUpModal: React.FC<LevelUpModalProps> = ({ level, title, onClos
                         </div>
                     </div>
 
-                    <h2 className="text-3xl font-black text-slate-800 tracking-tight mb-1 animate-in slide-in-from-bottom-5 delay-100">
+                    <h2 className="text-3xl font-black text-slate-800 tracking-tight mb-1">
                         ¡NIVEL {level}!
                     </h2>
-                    <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-1.5 rounded-full text-sm font-bold uppercase tracking-widest shadow-lg shadow-orange-200 mb-6 animate-in slide-in-from-bottom-5 delay-200">
+                    <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-1.5 rounded-full text-sm font-bold uppercase tracking-widest shadow-lg shadow-orange-200 mb-6">
                         {title}
                     </div>
 
-                    <p className="text-slate-600 font-medium mb-8 leading-relaxed animate-in slide-in-from-bottom-5 delay-300">
-                        ¡Tu disciplina está dando frutos! Has desbloqueado un nuevo estatus en tu carrera.
+                    <p className="text-slate-600 font-medium mb-8 leading-relaxed">
+                        ¡Tu disciplina está dando frutos! Has desbloqueado un nuevo estatus profesional.
                     </p>
 
-                    <button
-                        onClick={onClose}
-                        className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-xl hover:bg-slate-800 active:scale-95 transition-all animate-in slide-in-from-bottom-5 delay-500"
-                    >
-                        ¡A SEGUIR DANDO CAÑA! 🔥
-                    </button>
+                    <div className="w-full space-y-3">
+                        <button
+                            onClick={handleShare}
+                            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-xl font-bold shadow-xl shadow-green-200/50 hover:from-green-400 hover:to-emerald-500 active:scale-95 transition-all flex items-center justify-center gap-2 group"
+                        >
+                            <Share2 size={20} className="group-hover:-translate-y-1 transition-transform" />
+                            COMPARTIR MI LOGRO
+                        </button>
+
+                        <button
+                            onClick={onClose}
+                            className="w-full bg-slate-100 text-slate-500 py-3 rounded-xl font-bold hover:bg-slate-200 active:scale-95 transition-all"
+                        >
+                            Continuar trabajando
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

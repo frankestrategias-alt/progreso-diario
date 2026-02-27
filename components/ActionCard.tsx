@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Copy, Check, Pencil, Save } from 'lucide-react';
+import { triggerHaptic } from '../utils/magic';
 
 interface ActionCardProps {
   text: string;
   onCopy?: () => void;
+  hideCopy?: boolean;
 }
 
-export const ActionCard: React.FC<ActionCardProps> = ({ text, onCopy }) => {
+export const ActionCard: React.FC<ActionCardProps> = ({ text, onCopy, hideCopy = false }) => {
   const [currentText, setCurrentText] = useState(text);
   const [isEditing, setIsEditing] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -30,8 +32,26 @@ export const ActionCard: React.FC<ActionCardProps> = ({ text, onCopy }) => {
 
   const handleCopy = () => {
     if (onCopy) onCopy();
-    navigator.clipboard.writeText(currentText);
+
+    // Safety check for navigator.clipboard
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(currentText);
+    } else {
+      // Fallback for older browsers or insecure contexts
+      const textArea = document.createElement("textarea");
+      textArea.value = currentText;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+      } catch (err) {
+        console.error('Fallback copy failed', err);
+      }
+      document.body.removeChild(textArea);
+    }
+
     setCopied(true);
+    triggerHaptic('light');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -104,16 +124,18 @@ export const ActionCard: React.FC<ActionCardProps> = ({ text, onCopy }) => {
             >
               <Pencil size={16} />
             </button>
-            <button
-              onClick={handleCopy}
-              className={`p-2 rounded-full transition-all duration-300 ${copied
+            {!hideCopy && (
+              <button
+                onClick={handleCopy}
+                className={`p-2 rounded-full transition-all duration-300 ${copied
                   ? 'bg-emerald-500 text-white scale-110 rotate-12 shadow-lg shadow-emerald-200'
-                  : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'
-                }`}
-              title="Copiar texto"
-            >
-              {copied ? <Check size={16} /> : <Copy size={16} />}
-            </button>
+                  : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50 animate-icon-pulse'
+                  }`}
+                title="Copiar texto"
+              >
+                {copied ? <Check size={16} /> : <Copy size={16} />}
+              </button>
+            )}
           </>
         )}
       </div>

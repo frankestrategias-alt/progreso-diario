@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirigiendo a Networker Pro...</title>
+    <!-- REDIRECCIÓN AUTOMÁTICA -->
+    <script>
+        // Si tu nuevo sitio tiene otro nombre (ej. networker-pro-123.netlify.app),
+        // cambia SOLO la url aquí abajo:
+        const NUEVA_URL = "https://networker-pro.netlify.app";
+
+        // No toques nada más abajo
+        if (window.location.href.indexOf(NUEVA_URL) === -1) {
+            window.location.href = NUEVA_URL + window.location.pathname + window.location.search;
+        }
+    </script>
+    <meta http-equiv="refresh" content="0;url=https://networker-pro.netlify.app">
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: #f8fafc;
+            color: #334155;
+            text-align: center;
+        }
+
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        a {
+            color: #4f46e5;
+            font-weight: bold;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h2>🚀 Nos hemos mudado</h2>
+        <p>Estamos redirigiéndote a la nueva versión...</p>
+        <p><small>Si no ocurre nada, <a href="https://networker-pro.netlify.app">haz clic aquí</a>.</small></p>
+    </div>
+</body>
+
+</html>
