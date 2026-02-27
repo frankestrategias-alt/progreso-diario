@@ -19,6 +19,18 @@ const elevenLabsKey = import.meta.env?.VITE_ELEVENLABS_API_KEY || "";
 const voiceId = "pNInz6obpgDQGcFmaJgB"; // Voz "Adam" o similar profesional
 
 // --- VOIX ENGINE (GOOGLE CLOUD TTS) ---
+let globalAudio: HTMLAudioElement | null = null;
+
+export const unlockAudio = () => {
+  if (typeof window !== 'undefined' && !globalAudio) {
+    globalAudio = new Audio();
+  }
+  if (globalAudio) {
+    globalAudio.play().catch(() => { });
+    globalAudio.pause();
+  }
+};
+
 const speakWithBrowser = async (text: string): Promise<void> => {
   return new Promise(async (resolve) => {
     window.speechSynthesis.cancel();
@@ -47,36 +59,15 @@ const speakWithBrowser = async (text: string): Promise<void> => {
       voices = window.speechSynthesis.getVoices();
     }
 
-    const isES = (lang: string) => lang.startsWith('es');
+    // Filtrar solo voces en español
+    const spanishVoices = voices.filter(v => v.lang.toLowerCase().includes('es'));
 
-    // Asignamos una puntuación para filtrar la mejor voz
-    const getVoiceScore = (voice: SpeechSynthesisVoice) => {
-      let score = 0;
-      const lowerName = voice.name.toLowerCase();
-
-      if (lowerName.includes('premium')) score += 10;
-      if (lowerName.includes('neural')) score += 10;
-      if (lowerName.includes('natural')) score += 10;
-      if (lowerName.includes('online')) score += 8;
-      if (lowerName.includes('sabina')) score += 5;
-
-      if (lowerName.includes('google')) score += 5;
-      if (lowerName.includes('siri')) score += 5;
-      if (lowerName.includes('samsung')) score += 5;
-
-      if (voice.localService === false) score += 5; // Preference to cloud voices usually
-      if (lowerName.includes('es-us') || lowerName.includes('es-mx')) score += 3; // Latin accents mostly
-
-      return score;
-    };
-
-    const esVoices = voices.filter(v => isES(v.lang));
-    esVoices.sort((a, b) => getVoiceScore(b) - getVoiceScore(a));
-
-    const selectedVoice = esVoices.length > 0 ? esVoices[0] : null;
-
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
+    if (spanishVoices.length > 0) {
+      // Clon exacto del regex de Sistema Premium 360
+      const bestVoice = spanishVoices.find(v =>
+        /premium|neural|sabina|google|natural|online/i.test(v.name)
+      );
+      utterance.voice = bestVoice || spanishVoices[0];
     }
 
     utterance.rate = 1.05; // Slightly faster for energy
@@ -99,34 +90,20 @@ export const speak = async (text: string): Promise<void> => {
     const data = await callAiService("tts", { text: cleanText });
     if (!data.audioContent) throw new Error("No audio content from Google TTS");
 
-    const audioBlob = b64toBlob(data.audioContent, 'audio/mp3');
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
+    const audioUrl = "data:audio/mp3;base64," + data.audioContent;
+
+    if (!globalAudio) globalAudio = new Audio();
+    globalAudio.src = audioUrl;
+
     await new Promise<void>((resolve, reject) => {
-      audio.onended = () => resolve();
-      audio.onerror = reject;
-      audio.play().catch(reject);
+      globalAudio!.onended = () => resolve();
+      globalAudio!.onerror = reject;
+      globalAudio!.play().catch(reject);
     });
   } catch (error) {
     console.warn("Google TTS failed, using Browser Speech:", error);
     await speakWithBrowser(text);
   }
-};
-
-// Helper para convertir base64 a Blob
-const b64toBlob = (b64Data: string, contentType = '', sliceSize = 512) => {
-  const byteCharacters = atob(b64Data);
-  const byteArrays = [];
-  for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-    const slice = byteCharacters.slice(offset, offset + sliceSize);
-    const byteNumbers = new Array(slice.length);
-    for (let i = 0; i < slice.length; i++) {
-      byteNumbers[i] = slice.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    byteArrays.push(byteArray);
-  }
-  return new Blob(byteArrays, { type: contentType });
 };
 
 

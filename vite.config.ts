@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       proxy: {
         '/.netlify/functions': {
-          target: 'http://localhost:8888',
+          target: 'http://localhost:8890',
           changeOrigin: true,
         }
       }

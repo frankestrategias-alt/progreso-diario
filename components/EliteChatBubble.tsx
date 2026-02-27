@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Crown, Send, X, Mic, MicOff, Volume2, Sparkles } from 'lucide-react';
-import { generateEliteAssistantResponse, speak } from '../services/geminiService';
+import { generateEliteAssistantResponse, speak, unlockAudio } from '../services/geminiService';
 
 const EliteChatBubble: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -22,6 +22,9 @@ const EliteChatBubble: React.FC = () => {
 
     const handleSend = async () => {
         if (!input.trim()) return;
+
+        // Desbloquear audio en el primer toque de usuario en celular
+        unlockAudio();
 
         const userMsg = input.trim();
         setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
@@ -122,12 +125,14 @@ const EliteChatBubble: React.FC = () => {
                                         onChange={(e) => setInput(e.target.value)}
                                         onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                                         placeholder="Escribe tu consulta..."
-                                        className="bg-transparent border-none text-white text-sm w-full py-2 outline-none placeholder:text-slate-600"
+                                        disabled={isTyping || isSpeaking}
+                                        className="bg-transparent border-none text-white text-sm w-full py-2 outline-none placeholder:text-slate-600 disabled:opacity-50"
                                     />
                                 </div>
                                 <button
                                     onClick={handleSend}
-                                    className="w-11 h-11 rounded-full bg-[#c5a059] text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+                                    disabled={isTyping || isSpeaking || !input.trim()}
+                                    className="w-11 h-11 rounded-full bg-[#c5a059] text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                                 >
                                     <Send size={18} />
                                 </button>

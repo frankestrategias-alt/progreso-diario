@@ -9,8 +9,14 @@ export const handler = async (event) => {
         const body = JSON.parse(event.body);
         const { action, payload } = body;
 
-        const GEMINI_API_KEY = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-        const GOOGLE_CLOUD_KEY = process.env.VITE_GOOGLE_CLOUD_API_KEY || process.env.GOOGLE_CLOUD_API_KEY;
+        const GEMINI_API_KEY = process.env.VITE_GEMINI_API_KEY
+            || process.env.GEMINI_API_KEY
+            || process.env.GEMINI_KEY;
+
+        const GOOGLE_CLOUD_KEY = process.env.VITE_GOOGLE_CLOUD_API_KEY
+            || process.env.GOOGLE_CLOUD_KEY
+            || process.env.GOOGLE_CLOUD_API_KEY;
+
         const ELEVENLABS_API_KEY = process.env.VITE_ELEVENLABS_API_KEY || process.env.ELEVENLABS_API_KEY;
 
         if (action === "tts") {
@@ -52,8 +58,8 @@ export const handler = async (event) => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         input: { text: payload.text },
-                        voice: { languageCode: "es-US", name: "es-US-Neural2-B" },
-                        audioConfig: { audioEncoding: "MP3", pitch: 0, speakingRate: 1.0 }
+                        voice: { languageCode: "es-US", name: "es-US-Journey-D" },
+                        audioConfig: { audioEncoding: "MP3" }
                     })
                 }
             );
@@ -84,17 +90,27 @@ export const handler = async (event) => {
                 };
             }
 
-            const modelId = "gemini-2.5-flash"; // Cambiado a gemini-2.5-flash acorde a los modelos disponibles
+            const modelId = "gemini-2.5-flash"; // Se revierte a 2.5-flash porque el 2.0-flash lanza error de permisos
             const { prompt, systemInstruction, temperature, responseMimeType, maxOutputTokens, history } = payload;
 
             let contents = [];
 
-            // 1. Agregar historial si existe
+            // 1. Procesar y sanear historial para forzar alternancia estricta (user -> model -> user)
             if (history && Array.isArray(history)) {
-                contents = history.map(msg => ({
-                    role: msg.role === 'ai' ? 'model' : 'user',
-                    parts: [{ text: msg.content }]
-                }));
+                for (const msg of history) {
+                    const mappedRole = msg.role === 'ai' ? 'model' : 'user';
+                    const textContent = msg.content || "";
+
+                    if (contents.length > 0 && contents[contents.length - 1].role === mappedRole) {
+                        // Si el rol es el mismo que el anterior, concatenamos el texto para evitar doble turno
+                        contents[contents.length - 1].parts[0].text += "\\n" + textContent;
+                    } else {
+                        contents.push({
+                            role: mappedRole,
+                            parts: [{ text: textContent }]
+                        });
+                    }
+                }
             }
 
             // Gemini requiere que el historial comience siempre con el rol 'user'. 
@@ -105,7 +121,12 @@ export const handler = async (event) => {
 
             // 2. Agregar el prompt actual al final
             if (prompt) {
-                contents.push({ role: "user", parts: [{ text: prompt }] });
+                if (contents.length > 0 && contents[contents.length - 1].role === 'user') {
+                    // Si el último enviado al historial fue user, agrupamos este prompt
+                    contents[contents.length - 1].parts[0].text += "\\n" + prompt;
+                } else {
+                    contents.push({ role: "user", parts: [{ text: prompt }] });
+                }
             }
 
             const reqBody = {
@@ -137,7 +158,11 @@ export const handler = async (event) => {
                 return {
                     statusCode: 500,
                     headers: { "Access-Control-Allow-Origin": "*" },
-                    body: JSON.stringify({ error: dataContent.error || "Gemini API error" })
+                    body: JSON.stringify({
+                        error: dataContent.error || "Gemini API error",
+                        debugKeyLength: GEMINI_API_KEY ? GEMINI_API_KEY.length : 0,
+                        debugKeyPrefix: GEMINI_API_KEY ? GEMINI_API_KEY.substring(0, 5) : ""
+                    })
                 };
             }
 
