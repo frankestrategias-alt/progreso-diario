@@ -3,31 +3,20 @@ import { Sparkles, Flame, CheckCircle2 } from 'lucide-react';
 import { triggerMagic } from '../utils/magic';
 import { generateContactScript } from '../services/geminiService';
 import { ActionCard } from '../components/ActionCard';
-import { useAppContext } from '../contexts/AppContext';
+import { UserGoals } from '../types';
 import { VoiceInput } from '../components/VoiceInput';
 
 interface ContactViewProps {
   onRecordAction: () => void;
-  onNavigate?: (view: any) => void;
+  goals: UserGoals;
 }
 
-export const ContactView: React.FC<ContactViewProps> = ({ onRecordAction, onNavigate }) => {
-  const { goals } = useAppContext();
+export const ContactView: React.FC<ContactViewProps> = ({ onRecordAction, goals }) => {
   const [context, setContext] = useState('');
   const [platform, setPlatform] = useState('WhatsApp');
   const [tone, setTone] = useState('Amable');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<string[]>([]);
-  const [showFeedback, setShowFeedback] = useState(false);
-
-  const handleResult = (result: 'success' | 'later') => {
-    if (result === 'success') {
-      triggerMagic();
-      alert("¡Esa es la actitud! 🔥 Sigue sembrando.");
-      if (onNavigate) onNavigate('HOME', true);
-    }
-    setShowFeedback(false);
-  };
 
   const handleGenerate = async () => {
     if (!context.trim()) return;
@@ -131,22 +120,22 @@ export const ContactView: React.FC<ContactViewProps> = ({ onRecordAction, onNavi
             </div>
           </div>
 
-          {/* Step 3: Explosive Mode Toggle */}
-          <div className="bg-gradient-to-r from-slate-50 to-orange-50 border border-orange-100 rounded-2xl p-4 flex items-center justify-between group cursor-pointer transition-all hover:shadow-orange-100 hover:shadow-lg" onClick={() => setTone(prev => prev === 'Explosivo' ? 'Amable' : 'Explosivo')}>
+          {/* Step 3: Spicy Mode Toggle */}
+          <div className="bg-gradient-to-r from-slate-50 to-orange-50 border border-orange-100 rounded-2xl p-4 flex items-center justify-between group cursor-pointer transition-all hover:shadow-orange-100 hover:shadow-lg" onClick={() => setTone(prev => prev === 'Picante' ? 'Amable' : 'Picante')}>
             <div className="flex items-center gap-3">
-              <div className={`p-3 rounded-full transition-colors ${tone === 'Explosivo' ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
-                <Flame size={20} className={tone === 'Explosivo' ? 'animate-pulse' : ''} />
+              <div className={`p-3 rounded-full transition-colors ${tone === 'Picante' ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                <Flame size={20} className={tone === 'Picante' ? 'animate-pulse' : ''} />
               </div>
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-slate-500">¿Nivel de Impacto?</p>
-                <p className={`text-sm font-bold ${tone === 'Explosivo' ? 'text-orange-600' : 'text-slate-600'}`}>
-                  {tone === 'Explosivo' ? '🔥 MODO EXPLOSIVO (Directo)' : '😌 MODO ZEN (Amable)'}
+                <p className="text-xs font-black uppercase tracking-widest text-slate-500">¿Nivel de Osadía?</p>
+                <p className={`text-sm font-bold ${tone === 'Picante' ? 'text-orange-600' : 'text-slate-600'}`}>
+                  {tone === 'Picante' ? '🔥 MODO PICANTE (Directo)' : '😌 MODO ZEN (Amable)'}
                 </p>
               </div>
             </div>
 
-            <div className={`w-12 h-6 rounded-full p-1 transition-colors ${tone === 'Explosivo' ? 'bg-orange-500' : 'bg-slate-300'}`}>
-              <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${tone === 'Explosivo' ? 'translate-x-6' : 'translate-x-0'}`} />
+            <div className={`w-12 h-6 rounded-full p-1 transition-colors ${tone === 'Picante' ? 'bg-orange-500' : 'bg-slate-300'}`}>
+              <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${tone === 'Picante' ? 'translate-x-6' : 'translate-x-0'}`} />
             </div>
           </div>
 
@@ -191,7 +180,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onRecordAction, onNavi
       {!loading && results.length > 0 && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
           <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 ml-1 flex items-center gap-2">
-            <CheckCircle2 size={14} className="text-emerald-500" /> 3 Opciones de Invitación
+            <CheckCircle2 size={14} className="text-emerald-500" /> Opciones Listas
           </h3>
           <div className="space-y-4">
             {results.map((script, idx) => (
@@ -199,40 +188,12 @@ export const ContactView: React.FC<ContactViewProps> = ({ onRecordAction, onNavi
                 <div className="p-1">
                   <ActionCard
                     text={script}
-                    onCopy={() => {
-                      onRecordAction();
-                      setShowFeedback(true);
-                    }}
+                    onCopy={onRecordAction}
                   />
                 </div>
               </div>
             ))}
           </div>
-
-          {!showFeedback ? (
-            <div className="text-center p-2 mt-4">
-              <p className="text-xs text-slate-400 animate-pulse">Copia un mensaje para registrar la acción</p>
-            </div>
-          ) : (
-            <div className="bg-slate-900 p-4 rounded-2xl text-white text-center animate-in zoom-in slide-in-from-bottom-2 shadow-xl ring-2 ring-emerald-400/20 mt-6">
-              <p className="font-bold mb-3 text-lg">🚀 ¡Acción Detectada!</p>
-              <p className="text-sm text-slate-300 mb-4">¿Cuál fue el resultado?</p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => handleResult('later')}
-                  className="flex-1 py-3 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors font-medium text-slate-300"
-                >
-                  👀 Visto / Nada
-                </button>
-                <button
-                  onClick={() => handleResult('success')}
-                  className="flex-1 py-3 bg-emerald-500 rounded-xl font-bold shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 hover:scale-105 transition-all text-white flex items-center justify-center gap-2"
-                >
-                  🔥 ¡Interesado!
-                </button>
-              </div>
-            </div>
-          )}
           <p className="text-[10px] text-center text-slate-400 mt-6 font-medium uppercase tracking-widest opacity-60">
             El objetivo es abrir la puerta, no tirar la pared.
           </p>

@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import { Send, Clock, Loader2, ThumbsUp, Bell, Calendar, CheckCircle, Sparkles, MessageCircle, AlertCircle } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { triggerMagic } from '../utils/magic';
 import { generateFollowUpScript } from '../services/geminiService';
 import { ActionCard } from '../components/ActionCard';
-import { useAppContext } from '../contexts/AppContext';
+import { UserGoals } from '../types';
 import { VoiceInput } from '../components/VoiceInput';
 
 interface FollowUpViewProps {
   onRecordAction: () => void;
-  onNavigate?: (view: any) => void;
+  goals: UserGoals;
 }
 
-export const FollowUpView: React.FC<FollowUpViewProps> = ({ onRecordAction, onNavigate }) => {
-  const { goals } = useAppContext();
+
+
+export const FollowUpView: React.FC<FollowUpViewProps> = ({ onRecordAction, goals }) => {
   const [lastInteraction, setLastInteraction] = useState('');
   const [timeAgo, setTimeAgo] = useState('3 días');
   const [interest, setInterest] = useState('Medio');
@@ -33,9 +33,9 @@ export const FollowUpView: React.FC<FollowUpViewProps> = ({ onRecordAction, onNa
     if (result === 'success') {
       triggerMagic();
       alert("¡Esa es la actitud! 🔥 Sigue sembrando.");
-      if (onNavigate) onNavigate('HOME', true);
     }
     setShowFeedback(false);
+    onRecordAction(); // Log activity
   };
 
   const handleGenerate = async () => {
@@ -55,15 +55,6 @@ export const FollowUpView: React.FC<FollowUpViewProps> = ({ onRecordAction, onNa
       const response = await generateFollowUpScript(lastInteraction, timeAgo, interest, tone, goals.companyName);
       const scripts = response.split('---').map(s => s.trim()).filter(s => s.length > 0);
       setResults(scripts);
-
-      // Magic Feedback
-      triggerMagic();
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#6366f1', '#a855f7', '#ffffff'] // Indigo/Purple theme
-      });
     } catch (e) {
       console.error(e);
     } finally {
@@ -179,25 +170,6 @@ export const FollowUpView: React.FC<FollowUpViewProps> = ({ onRecordAction, onNa
                 placeholder="Ej: Le envié el video hace 2 días, tenía dudas sobre el precio..."
                 className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 transition-all placeholder:text-slate-400 text-slate-700 min-h-[100px] resize-none text-base font-medium"
               />
-
-              {/* Context Chips - Follow Up Speed */}
-              <div className="mt-4 flex flex-wrap gap-2">
-                {[
-                  { label: '📺 Vio el Video', text: 'Vio el video de presentación pero no hemos agendado el cierre.' },
-                  { label: '❓ Dudas Precio', text: 'Me preguntó sobre los costos y la inversión inicial.' },
-                  { label: '💤 No Responde', text: 'Le envié info hace días y me dejó en "visto".' },
-                  { label: '🤝 Interesado', text: 'Dijo que le gusta pero tiene miedo de no tener tiempo.' },
-                  { label: '🏁 Cierre Pendiente', text: 'Quedamos en hablar hoy para tomar una decisión final.' }
-                ].map((chip) => (
-                  <button
-                    key={chip.label}
-                    onClick={() => setLastInteraction(prev => prev ? `${prev}. ${chip.text}` : chip.text)}
-                    className="text-[10px] font-black bg-white border border-indigo-100 text-indigo-600 px-3 py-1.5 rounded-full hover:bg-indigo-600 hover:text-white transition-all active:scale-90 shadow-sm"
-                  >
-                    {chip.label}
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
 
@@ -270,89 +242,7 @@ export const FollowUpView: React.FC<FollowUpViewProps> = ({ onRecordAction, onNa
         </div>
       </div>
 
-      {/* SKELETON LOADER */}
-      {loading && (
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden h-28">
-              <div className="space-y-3">
-                <div className="flex gap-2 mb-2">
-                  <div className="h-2 w-2 rounded-full bg-slate-200"></div>
-                  <div className="h-2 w-2 rounded-full bg-slate-200"></div>
-                  <div className="h-2 w-2 rounded-full bg-slate-200"></div>
-                </div>
-                <div className="h-4 bg-slate-100 rounded w-3/4"></div>
-                <div className="h-4 bg-slate-100 rounded w-1/2"></div>
-                <div className="h-10 w-full mt-4 bg-slate-50 rounded-lg"></div>
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-shimmer" style={{ animationDelay: `${i * 0.15}s` }}></div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* RESULTS DISPLAY (NOW ABOVE REMINDER) */}
-      {!loading && results.length > 0 && (
-        <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-              <Sparkles size={16} className="text-amber-400" />
-              3 Opciones de Seguimiento
-            </h3>
-            <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
-              3 Variaciones
-            </span>
-          </div>
-
-          <div className="grid gap-4">
-            {results.map((script, idx) => (
-              <div key={idx} className="animate-in slide-in-from-bottom-4" style={{ animationDelay: `${idx * 100}ms` }}>
-                <ActionCard
-                  text={script}
-                  onCopy={() => {
-                    onRecordAction();
-                    setShowFeedback(true);
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-
-          {!showFeedback ? (
-            <div className="text-center p-2">
-              <p className="text-xs text-slate-400 animate-pulse">Copia un mensaje para registrar la acción</p>
-            </div>
-          ) : (
-            <div className="bg-slate-900 p-4 rounded-2xl text-white text-center animate-in zoom-in slide-in-from-bottom-2 shadow-xl ring-2 ring-emerald-400/20">
-              <p className="font-bold mb-3 text-lg">🚀 ¡Acción Detectada!</p>
-              <p className="text-sm text-slate-300 mb-4">¿Cuál fue el resultado?</p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => handleResult('later')}
-                  className="flex-1 py-3 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors font-medium text-slate-300"
-                >
-                  👀 Visto / Nada
-                </button>
-                <button
-                  onClick={() => handleResult('success')}
-                  className="flex-1 py-3 bg-emerald-500 rounded-xl font-bold shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 hover:scale-105 transition-all text-white flex items-center justify-center gap-2"
-                >
-                  🔥 ¡Interesado!
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3 text-sm text-blue-800">
-            <AlertCircle className="shrink-0 text-blue-500" size={20} />
-            <p>
-              <strong className="font-bold">Pro Tip:</strong> La fortuna está en el seguimiento. No tengas miedo de ser "pesado" si tu intención es ayudar genuinamente.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* MAGICAL REMINDER CARD (NOW BELOW RESULTS) */}
+      {/* MAGICAL REMINDER CARD */}
       <div className="bg-gradient-to-br from-white to-indigo-50/50 rounded-[24px] border border-indigo-100 p-1 relative overflow-hidden shadow-lg shadow-indigo-100/50 group">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 opacity-30"></div>
 
@@ -414,6 +304,93 @@ export const FollowUpView: React.FC<FollowUpViewProps> = ({ onRecordAction, onNa
           </button>
         </div>
       </div>
+
+      {/* SKELETON LOADER */}
+      {
+        loading && (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden h-28">
+                <div className="space-y-3">
+                  <div className="flex gap-2 mb-2">
+                    <div className="h-2 w-2 rounded-full bg-slate-200"></div>
+                    <div className="h-2 w-2 rounded-full bg-slate-200"></div>
+                    <div className="h-2 w-2 rounded-full bg-slate-200"></div>
+                  </div>
+                  <div className="h-4 bg-slate-100 rounded w-3/4"></div>
+                  <div className="h-4 bg-slate-100 rounded w-1/2"></div>
+                  <div className="h-10 w-full mt-4 bg-slate-50 rounded-lg"></div>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-shimmer" style={{ animationDelay: `${i * 0.15}s` }}></div>
+              </div>
+            ))}
+          </div>
+        )
+      }
+
+      {/* RESULTS DISPLAY */}
+      {
+        !loading && results.length > 0 && (
+          <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-4">
+
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                <Sparkles size={16} className="text-amber-400" />
+                Opciones Generadas
+              </h3>
+              <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
+                3 Variaciones
+              </span>
+            </div>
+
+            <div className="grid gap-4">
+              {results.map((script, idx) => (
+                <div key={idx} className="animate-in slide-in-from-bottom-4" style={{ animationDelay: `${idx * 100}ms` }}>
+                  <ActionCard
+                    text={script}
+                    onCopy={() => {
+                      onRecordAction();
+                      setShowFeedback(true);
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {!showFeedback ? (
+              <div className="text-center p-2">
+                <p className="text-xs text-slate-400 animate-pulse">Copia un mensaje para registrar la acción</p>
+              </div>
+            ) : (
+              <div className="bg-slate-900 p-4 rounded-2xl text-white text-center animate-in zoom-in slide-in-from-bottom-2 shadow-xl ring-2 ring-emerald-400/20">
+                <p className="font-bold mb-3 text-lg">🚀 ¡Acción Detectada!</p>
+                <p className="text-sm text-slate-300 mb-4">¿Cuál fue el resultado?</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleResult('later')}
+                    className="flex-1 py-3 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors font-medium text-slate-300"
+                  >
+                    👀 Visto / Nada
+                  </button>
+                  <button
+                    onClick={() => handleResult('success')}
+                    className="flex-1 py-3 bg-emerald-500 rounded-xl font-bold shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 hover:scale-105 transition-all text-white flex items-center justify-center gap-2"
+                  >
+                    🔥 ¡Interesado!
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3 text-sm text-blue-800">
+              <AlertCircle className="shrink-0 text-blue-500" size={20} />
+              <p>
+                <strong className="font-bold">Pro Tip:</strong> La fortuna está en el seguimiento. No tengas miedo de ser "pesado" si tu intención es ayudar genuinamente.
+              </p>
+            </div>
+          </div>
+        )
+      }
 
     </div >
   );

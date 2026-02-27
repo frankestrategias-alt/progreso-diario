@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ChevronRight, CheckCircle2, Zap, MessageCircle, Megaphone, ChevronLeft, UserPlus } from 'lucide-react';
+import { X, ChevronRight, CheckCircle2, Zap, MessageCircle, Megaphone, ChevronLeft } from 'lucide-react';
 
 interface HelpModalProps {
     onClose: () => void;
@@ -13,22 +13,22 @@ const STEPS = [
         color: "bg-amber-50"
     },
     {
-        title: "Paso 1: Invitar ⚡",
-        desc: "Inicia conversaciones profesionales sin miedo. Usa los guiones de IA para despertar curiosidad e invitar nuevos prospectos.",
-        icon: <UserPlus size={48} className="text-emerald-500" />,
+        title: "Paso 1: Rompe el Hielo ❄️",
+        desc: "Inicia conversaciones profesionales sin miedo al rechazo. Usa los guiones de invitación para despertar curiosidad genuina.",
+        icon: <MessageCircle size={48} className="text-emerald-500" />,
         color: "bg-emerald-50"
     },
     {
-        title: "Paso 2: Seguimiento 🎯",
-        desc: "El dinero está en el seguimiento. Gestiona tus conversaciones abiertas y no dejes que ningún interesado se escape.",
-        icon: <MessageCircle size={48} className="text-blue-500" />,
+        title: "Paso 2: Seguimiento Efectivo 🎯",
+        desc: "El dinero está en el seguimiento. Gestiona tu lista de prospectos y cierra más ventas de forma ordenada y profesional.",
+        icon: <CheckCircle2 size={48} className="text-blue-500" />,
         color: "bg-blue-50"
     },
     {
-        title: "Paso 3: Contenido 📢",
-        desc: "Atrae líderes creando contenido magnético. Usa la IA para escribir posts que generen interés en tu negocio hoy mismo.",
-        icon: <Megaphone size={48} className="text-pink-500" />,
-        color: "bg-pink-50"
+        title: "Paso 3: Atracción Masiva 📢",
+        desc: "Deja de perseguir. Crea contenido magnético en segundos y atrae líderes a tu equipo con estrategias de marketing probadas.",
+        icon: <Megaphone size={48} className="text-purple-500" />,
+        color: "bg-purple-50"
     }
 ];
 

@@ -1,13 +1,14 @@
 import React from 'react';
 import { BarChart3, ArrowLeft, Trophy, Calendar } from 'lucide-react';
-import { useAppContext } from '../contexts/AppContext';
+import { DailyProgress, UserGoals } from '../types';
 
 interface StatsViewProps {
+    progress: DailyProgress;
+    goals: UserGoals;
     onBack: () => void;
 }
 
-export const StatsView: React.FC<StatsViewProps> = ({ onBack }) => {
-    const { progress, goals } = useAppContext();
+export const StatsView: React.FC<StatsViewProps> = ({ progress, goals, onBack }) => {
     // Get last 7 days of dates
     const last7Days = [...Array(7)].map((_, i) => {
         const d = new Date();
@@ -104,24 +105,20 @@ export const StatsView: React.FC<StatsViewProps> = ({ onBack }) => {
 
             {/* Weekly Share Button */}
             <button
-                onClick={async () => {
+                onClick={() => {
                     const totalWeekly = (Object.values(history) as any[]).reduce((acc: number, curr: any) => acc + (curr.contacts || 0) + (curr.followUps || 0), 0);
                     const topDay = Math.max(...(Object.values(history) as any[]).map((h: any) => (h.contacts || 0) + (h.followUps || 0)), 0);
 
-                    const shareText = `📊 *Mi Reporte Semanal de Ejecución* 📈\n\n🏆 Total Acciones: ${totalWeekly}\n🔥 Mejor Día: ${topDay} acciones\n🏢 Compañía: ${goals.companyName || 'MLM'}\n\n¡La consistencia es la madre del éxito! Sigue adelante. 💪🚀\n\nGenerado con: https://networker-pro.netlify.app/`;
+                    const shareText = `📊 *Mi Reporte Semanal de Ejecución* 📈\n\n🏆 Total Acciones: ${totalWeekly}\n🔥 Mejor Día: ${topDay} acciones\n🏢 Compañía: ${goals.companyName || 'MLM'}\n\n¡La consistencia es la madre del éxito! Sigue adelante. 💪🚀\n\nGenerado con: ${window.location.origin}`;
 
                     if (navigator.share) {
-                        try {
-                            await navigator.share({
-                                title: 'Mi Reporte Semanal',
-                                text: shareText
-                            });
-                        } catch (err) {
-                            console.log('Error sharing', err);
-                        }
+                        navigator.share({
+                            title: 'Mi Reporte Semanal',
+                            text: shareText
+                        }).catch(err => console.log('Error sharing', err));
                     } else {
-                        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
-                        window.open(whatsappUrl, '_blank');
+                        navigator.clipboard.writeText(shareText);
+                        alert('¡Reporte copiado al portapapeles!');
                     }
                 }}
                 className="w-full py-4 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-widest shadow-lg shadow-indigo-100 active:scale-95 transition-all flex items-center justify-center gap-2"
