@@ -26,7 +26,8 @@ import {
   X,
   Copy,
   PlusCircle,
-  LayoutGrid
+  LayoutGrid,
+  Rocket
 } from 'lucide-react';
 import { ViewState, DailyProgress, UserGoals, GamificationState, LEVELS } from '../types';
 import { useAppContext } from '../contexts/AppContext';
@@ -37,6 +38,7 @@ import { RescueMode } from '../components/RescueMode';
 import { DailyPostView } from './DailyPostView';
 import { ShareToolModal } from '../components/ShareToolModal';
 import { DailySecret } from '../components/DailySecret';
+import { EliteCommandCenter } from '../components/EliteCommandCenter';
 import { PaywallModal } from '../components/PaywallModal';
 
 interface HomeViewProps {
@@ -101,7 +103,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const { progress, goals, gamification } = useAppContext();
 
   const [showShareModal, setShowShareModal] = useState(false);
-  const [showPostModal, setShowPostModal] = useState(false);
   const [showShareToolModal, setShowShareToolModal] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -166,25 +167,29 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const isFollowUpsDone = progress.followUpsMade >= goals.dailyFollowUps;
 
   const getCardStyle = (type: 'contact' | 'followup' | 'post' | 'objections') => {
-    const base = "w-full group rounded-[var(--radius-standard)] p-6 transition-all duration-500 flex items-center justify-between border ";
+    const base = "w-full group rounded-[32px] p-5 transition-all duration-500 flex items-center justify-between border border-slate-300 shadow-sm ";
 
     if (type === 'contact') {
-      if (!isContactsDone) return base + "bg-white border-emerald-400 shadow-[0_0_30px_-5px_rgba(52,211,153,0.3)] scale-[1.02] premium-card-shadow z-10 relative";
-      return base + "bg-slate-50 border-slate-100 opacity-60";
+      if (!isContactsDone) return base + "bg-white shadow-[0_0_30px_-5px_rgba(52,211,153,0.3)] scale-[1.02] z-10 relative";
+      return base + "bg-slate-50 opacity-90";
     }
     if (type === 'followup') {
-      if (!isContactsDone) return base + "bg-slate-50 border-slate-100 opacity-40 grayscale-[50%]";
-      if (!isFollowUpsDone) return base + "bg-white border-blue-400 shadow-[0_0_30px_-5px_rgba(96,165,250,0.3)] scale-[1.02] premium-card-shadow z-10 relative";
-      return base + "bg-slate-50 border-slate-100 opacity-60";
+      const isActive = isContactsDone || progress.followUpsMade > 0;
+      if (!isActive) return base + "bg-slate-50 opacity-60";
+      if (!isFollowUpsDone) return base + "bg-white shadow-[0_0_30px_-5px_rgba(96,165,250,0.3)] scale-[1.02] z-10 relative";
+      return base + "bg-slate-50 opacity-90";
     }
     if (type === 'post') {
-      if (!isFollowUpsDone) return base + "bg-slate-50 border-slate-100 opacity-40 grayscale-[50%]";
-      return base + "bg-white border-pink-400 shadow-[0_0_30px_-5px_rgba(244,114,182,0.3)] scale-[1.02] premium-card-shadow z-10 relative";
+      const isActive = isFollowUpsDone || (progress.postsMade || 0) > 0;
+      if (!isActive) return base + "bg-slate-50 opacity-60";
+      const isDone = (progress.postsMade || 0) >= (goals.dailyPosts || 1);
+      if (!isDone) return base + "bg-white shadow-[0_0_30px_-5px_rgba(244,114,182,0.3)] scale-[1.02] z-10 relative";
+      return base + "bg-slate-50 opacity-90";
     }
     if (type === 'objections') {
-      return base + "bg-slate-50 border-slate-100 opacity-70 hover:opacity-100";
+      return base + "bg-white hover:border-slate-400 transition-all";
     }
-    return base;
+    return base + "bg-white";
   };
 
   const currentLevelData = LEVELS.find(l => l.level === gamification.level) || LEVELS[0];
@@ -208,7 +213,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
     } else {
       handleCopy(shareText);
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
-      window.open(whatsappUrl, '_blank');
+      const link = document.createElement('a');
+      link.href = whatsappUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   };
 
@@ -247,7 +258,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
     } else {
       handleCopy(fullText);
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(fullText)}`;
-      window.open(whatsappUrl, '_blank');
+      const link = document.createElement('a');
+      link.href = whatsappUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   };
 
@@ -261,7 +278,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-[100px] -ml-16 -mb-16 pointer-events-none"></div>
 
         <div className="flex justify-between items-start mb-8 relative z-10">
-          <div onClick={() => setViewState('GOALS')} className="cursor-pointer group/level">
+          <div onClick={() => setViewState('GOALS')} className="cursor-pointer group/level flex-1">
             <div className="flex items-center gap-2 mb-2">
               {gamification.streak > 0 && (
                 <span className="relative flex items-center gap-1.5 bg-orange-500/10 text-orange-400 text-[10px] font-black px-3 py-1.5 rounded-full border border-orange-500/20 uppercase tracking-widest overflow-hidden">
@@ -292,31 +309,41 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </div>
           </div>
 
-          <div className="flex gap-2 items-start text-right">
-            <div className="flex gap-2">
-              <button onClick={() => setShowShareModal(true)} className="p-2 rounded-xl bg-slate-700/50 text-slate-300 hover:text-white border border-white/10 transition-colors" title="Compartir">
-                <Share2 size={20} />
-              </button>
-            </div>
+          <div className="flex gap-1.5 -mt-1 -mr-1">
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-300 hover:text-white border border-indigo-500/20 transition-all hover:bg-indigo-500/20"
+              title="Progreso Diario"
+            >
+              <Share2 size={18} />
+            </button>
+            <button
+              onClick={() => setShowShareToolModal(true)}
+              className="relative group p-2.5 rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 active:scale-95 transition-all overflow-hidden border border-white/20"
+              title="Sello de Liderazgo (Duplicar)"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-shimmer-sweep"></div>
+              <Rocket size={18} className="relative z-10" />
+            </button>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-2 relative z-10 mb-2">
-          <div onClick={() => setViewState('CONTACT')} className={`flex flex-col items-center gap-2 cursor-pointer transition-all duration-500 group ${!isContactsDone ? 'scale-110 drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]' : 'opacity-70 hover:opacity-100 grayscale hover:grayscale-0'}`}>
+          <div onClick={() => setViewState('CONTACT')} className={`flex flex-col items-center gap-2 cursor-pointer transition-all duration-500 group ${!isContactsDone ? 'scale-110 drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]' : ''}`}>
             <CircularProgress current={progress.contactsMade} max={goals.dailyContacts} colorClass="text-emerald-400 group-hover:text-emerald-500 transition-colors" icon={UserPlus} size={64} />
             <span className={`text-[10px] font-black uppercase tracking-wider mt-4 ${!isContactsDone ? 'text-emerald-400' : 'text-slate-500'}`}>Contactos</span>
           </div>
 
-          <div onClick={() => isContactsDone ? setViewState('FOLLOWUP') : undefined} className={`flex flex-col items-center gap-2 transition-all duration-500 group ${!isContactsDone ? 'opacity-30 grayscale saturate-0 cursor-not-allowed pointer-events-none' : isFollowUpsDone ? 'opacity-70 hover:opacity-100 grayscale hover:grayscale-0 cursor-pointer' : 'scale-110 drop-shadow-[0_0_15px_rgba(96,165,250,0.3)] cursor-pointer'}`}>
+          <div onClick={() => setViewState('FOLLOWUP')} className={`flex flex-col items-center gap-2 transition-all duration-500 group ${(!isContactsDone && progress.followUpsMade === 0) ? 'opacity-30 grayscale saturate-0 cursor-not-allowed pointer-events-none' : isFollowUpsDone ? 'cursor-pointer' : 'scale-110 drop-shadow-[0_0_15px_rgba(96,165,250,0.3)] cursor-pointer'}`}>
             <CircularProgress current={progress.followUpsMade} max={goals.dailyFollowUps} colorClass="text-blue-400 group-hover:text-blue-500 transition-colors" icon={MessageCircle} size={64} />
-            <span className={`text-[10px] font-black uppercase tracking-wider mt-4 ${isContactsDone && !isFollowUpsDone ? 'text-blue-400' : 'text-slate-500'}`}>Seguim.</span>
+            <span className={`text-[10px] font-black uppercase tracking-wider mt-4 ${(isContactsDone || progress.followUpsMade > 0) && !isFollowUpsDone ? 'text-blue-400' : 'text-slate-500'}`}>Seguim.</span>
           </div>
 
-          <div onClick={() => isFollowUpsDone ? setShowPostModal(true) : undefined} className={`flex flex-col items-center gap-2 relative group transition-all duration-500 ${!isFollowUpsDone ? 'opacity-30 grayscale saturate-0 cursor-not-allowed pointer-events-none' : 'scale-110 drop-shadow-[0_0_15px_rgba(244,114,182,0.3)] cursor-pointer'}`}>
+          <div onClick={() => setViewState('DAILY_POST')} className={`flex flex-col items-center gap-2 relative group transition-all duration-500 ${(!isFollowUpsDone && (progress.postsMade || 0) === 0) ? 'opacity-30 grayscale saturate-0 cursor-not-allowed pointer-events-none' : 'scale-110 drop-shadow-[0_0_15px_rgba(244,114,182,0.3)] cursor-pointer'}`}>
             <div className="transition-transform active:scale-95 duration-200 relative group w-full h-full flex justify-center">
               <CircularProgress current={progress.postsMade || 0} max={goals.dailyPosts || 1} colorClass="text-pink-400 group-hover:text-pink-500 transition-colors" icon={Megaphone} size={64} />
             </div>
-            <span className={`text-[10px] font-black uppercase tracking-wider mt-4 ${isFollowUpsDone ? 'text-pink-400' : 'text-slate-500'}`}>Publicar</span>
+            <span className={`text-[10px] font-black uppercase tracking-wider mt-4 ${(isFollowUpsDone || (progress.postsMade || 0) > 0) ? 'text-pink-400' : 'text-slate-500'}`}>Publicar</span>
           </div>
         </div>
       </div>
@@ -325,7 +352,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
       {gamification.currentMission && (
         <div className={`relative overflow-hidden p-8 rounded-[var(--radius-premium)] border transition-all duration-700 ${gamification.currentMission.completed
-          ? 'bg-emerald-500/5 border-emerald-500/20 scale-[0.98]'
+          ? 'bg-emerald-500/25 border-emerald-500/40 scale-[0.98]'
           : 'bg-white border-slate-100 premium-card-shadow group'}`}>
 
           <div className="relative z-10 flex flex-col items-center text-center">
@@ -336,10 +363,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </div>
 
             <div className="mb-8 max-w-[300px]">
-              <h3 className={`text-2xl font-black mb-3 leading-tight tracking-tight ${gamification.currentMission.completed ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
+              <h3 className={`text-2xl font-black mb-3 leading-tight tracking-tight ${gamification.currentMission.completed ? 'text-slate-700 line-through opacity-90' : 'text-slate-900'}`}>
                 {(gamification.currentMission as any).title || 'Misión Especial'}
               </h3>
-              <p className={`text-sm font-bold leading-relaxed ${gamification.currentMission.completed ? 'text-slate-300' : 'text-slate-500 text-balance'}`}>
+              <p className={`text-sm font-bold leading-relaxed ${gamification.currentMission.completed ? 'text-slate-700/80' : 'text-slate-600 text-balance'}`}>
                 {gamification.currentMission.description}
               </p>
             </div>
@@ -349,7 +376,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 onClick={onCompleteMission}
                 className="relative group/btn bg-slate-900 border border-white/10 overflow-hidden text-white text-[11px] font-black px-12 py-5 rounded-2xl hover:bg-indigo-600 transition-all active:scale-95 uppercase tracking-widest shadow-2xl flex items-center gap-3"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-shimmer-sweep"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-shimmer-sweep"></div>
                 <Zap size={16} className="text-amber-400 animate-zap-pulse relative z-10" fill="currentColor" />
                 <span className="relative z-10 animate-zap-pulse text-amber-50">!RECLAMAR PUNTOS!</span>
               </button>
@@ -366,75 +393,77 @@ export const HomeView: React.FC<HomeViewProps> = ({
       <div className="grid grid-cols-1 gap-4 mt-8">
         <button
           onClick={() => setViewState('CONTACT')}
-          className={getCardStyle('contact')}
+          className={getCardStyle('contact') + " active:scale-95 duration-300 group overflow-hidden"}
         >
           <div className="flex items-center gap-5">
-            <div className={`p-4 rounded-2xl transition-all ${!isContactsDone ? 'bg-emerald-500 text-white animate-pulse' : 'bg-emerald-100/50 text-emerald-600'}`}>
-              <UserPlus size={26} />
+            <div className="bg-emerald-50 p-4 rounded-2xl text-emerald-600 transition-transform group-hover:scale-105 duration-500">
+              <UserPlus size={24} />
             </div>
             <div className="text-left">
-              <h3 className="font-black text-[16px] text-slate-800 tracking-tight">Paso 1: Contactar</h3>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isContactsDone ? '¡Completado!' : '¡Conecta y Conquista!'}</p>
+              <h3 className="font-black text-[15px] text-slate-900 leading-tight">Paso 1: Contactar</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">
+                {isContactsDone ? '¡Completado!' : '¡CONECTA Y CONQUISTA!'}
+              </p>
             </div>
           </div>
-          <div className="bg-slate-50 p-3 rounded-full transition-all shadow-sm">
-            {isContactsDone ? <CheckCircle2 size={18} className="text-emerald-500" /> : <ChevronRight size={18} strokeWidth={4} className="text-emerald-500" />}
+          <div className="bg-slate-100 p-3.5 rounded-full text-slate-600 group-hover:text-emerald-700 transition-colors">
+            <ChevronRight size={18} strokeWidth={4} />
           </div>
         </button>
 
         <button
           onClick={() => setViewState('FOLLOWUP')}
-          disabled={!isContactsDone}
-          className={getCardStyle('followup')}
+          className={getCardStyle('followup') + " active:scale-95 duration-300 group overflow-hidden"}
         >
           <div className="flex items-center gap-5">
-            <div className={`p-4 rounded-2xl transition-all ${isContactsDone && !isFollowUpsDone ? 'bg-blue-500 text-white animate-pulse' : 'bg-blue-100/50 text-blue-600'}`}>
-              <MessageCircle size={26} />
+            <div className="bg-blue-50 p-4 rounded-2xl text-blue-600 transition-transform group-hover:scale-105 duration-500">
+              <MessageCircle size={24} />
             </div>
             <div className="text-left">
-              <h3 className="font-black text-[16px] text-slate-800 tracking-tight">Paso 2: Seguimiento</h3>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{!isContactsDone ? 'Bloqueado' : isFollowUpsDone ? '¡Completado!' : 'Cierra tratos hoy'}</p>
+              <h3 className="font-black text-[15px] text-slate-900 leading-tight">Paso 2: Seguimiento</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">
+                {!isContactsDone ? 'CIERRA TRATOS HOY' : isFollowUpsDone ? '¡COMPLETADO!' : 'CIERRA TRATOS HOY'}
+              </p>
             </div>
           </div>
-          <div className="bg-slate-50 p-3 rounded-full transition-all shadow-sm">
-            {isFollowUpsDone ? <CheckCircle2 size={18} className="text-blue-500" /> : <ChevronRight size={18} strokeWidth={4} className="text-blue-500" />}
+          <div className="bg-slate-100 p-3.5 rounded-full text-slate-600 group-hover:text-blue-700 transition-colors">
+            <ChevronRight size={18} strokeWidth={4} />
           </div>
         </button>
 
         <button
-          onClick={() => setShowPostModal(true)}
-          disabled={!isFollowUpsDone}
-          className={getCardStyle('post')}
+          onClick={() => setViewState('DAILY_POST')}
+          className={getCardStyle('post') + " active:scale-95 duration-300 group overflow-hidden"}
         >
           <div className="flex items-center gap-5">
-            <div className={`p-4 rounded-2xl transition-all ${isFollowUpsDone ? 'bg-pink-500 text-white animate-pulse' : 'bg-pink-100/50 text-pink-600'}`}>
-              <Megaphone size={26} />
+            <div className="bg-pink-50 p-4 rounded-2xl text-pink-600 transition-transform group-hover:scale-105 duration-500">
+              <Megaphone size={24} />
             </div>
             <div className="text-left">
-              <h3 className="font-black text-[16px] text-slate-800 tracking-tight">Paso 3: Publicar</h3>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{!isFollowUpsDone ? 'Bloqueado' : '¡Impacta y Crece!'}</p>
+              <h3 className="font-black text-[15px] text-slate-900 leading-tight">Paso 3: Publicar</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">¡IMPACTA Y CRECE!</p>
             </div>
           </div>
-          <div className="bg-slate-50 p-3 rounded-full transition-all shadow-sm">
-            <ChevronRight size={18} strokeWidth={4} className="text-pink-500" />
+          <div className="bg-slate-100 p-3.5 rounded-full text-slate-600 group-hover:text-pink-700 transition-colors">
+            <ChevronRight size={18} strokeWidth={4} />
           </div>
         </button>
 
         <button
           onClick={() => setViewState('OBJECTIONS')}
-          className={getCardStyle('objections')}
+          className={getCardStyle('objections') + " active:scale-95 duration-300 group overflow-hidden"}
         >
           <div className="flex items-center gap-5">
-            <div className="bg-amber-100/50 p-4 rounded-2xl text-amber-600 group-hover:bg-amber-500 group-hover:text-white transition-all">
-              <ShieldCheck size={26} />
+            <div className="bg-amber-50 p-4 rounded-2xl text-amber-600 transition-transform group-hover:scale-105 duration-500">
+              <ShieldCheck size={24} />
             </div>
             <div className="text-left">
-              <h3 className="font-black text-[16px] text-slate-800 tracking-tight">Biblioteca de Objeciones</h3>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Herramienta de Apoyo</p>
+              <h3 className="font-black text-[15px] text-slate-900 leading-tight">Biblioteca de Objeciones</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">HERRAMIENTA DE APOYO</p>
             </div>
           </div>
-          <div className="bg-slate-50 p-3 rounded-full transition-all shadow-sm">
-            <ChevronRight size={18} strokeWidth={4} className="text-slate-400" />
+          <div className="bg-slate-100 p-3.5 rounded-full text-slate-600 group-hover:text-amber-700 transition-colors">
+            <ChevronRight size={18} strokeWidth={4} />
           </div>
         </button>
       </div>
@@ -444,29 +473,36 @@ export const HomeView: React.FC<HomeViewProps> = ({
         onAddPoints={addPoints}
       />
 
+      <div className="my-10 flex items-center justify-center gap-4 px-10 opacity-80">
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-slate-400 to-transparent" />
+        <div className="w-2 h-1.5 rounded-full border border-slate-400 rotate-45" />
+        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-slate-400 to-transparent" />
+      </div>
 
-
-      {showPostModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-lg h-[90vh] sm:h-auto sm:rounded-[32px] rounded-t-[32px] shadow-2xl overflow-y-auto animate-in slide-in-from-bottom duration-300 relative">
-            <button
-              onClick={() => setShowPostModal(false)}
-              className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full text-slate-500 z-50 hover:bg-slate-200"
-            >
-              <X size={20} />
-            </button>
-            <div className="p-1">
-              <DailyPostView
-                goals={goals}
-                onPostComplete={(isRescue) => {
-                  onRecordPost(isRescue);
-                }}
-                onNavigate={() => setShowPostModal(false)}
-              />
-            </div>
+      <button
+        onClick={() => setViewState('GOALS')}
+        className="w-full bg-slate-900 text-white p-6 rounded-[32px] flex items-center justify-between border border-white/10 shadow-2xl hover:bg-black transition-all active:scale-[0.98] group"
+      >
+        <div className="flex items-center gap-5">
+          <div className="p-1 text-white group-hover:rotate-12 transition-transform">
+            <Settings size={28} />
+          </div>
+          <div className="text-left">
+            <h3 className="font-black text-[18px] tracking-tight">Mis Metas</h3>
+            <p className="text-[10px] font-black text-indigo-300/60 uppercase tracking-widest">Configurar mi negocio</p>
           </div>
         </div>
-      )}
+        <div className="bg-white/10 p-3 rounded-full">
+          <ChevronRight size={20} strokeWidth={4} />
+        </div>
+      </button>
+
+      <DailySecret />
+
+      <EliteCommandCenter />
+
+
+
 
       {showPaywall && (
         <PaywallModal

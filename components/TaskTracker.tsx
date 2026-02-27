@@ -64,7 +64,7 @@ export const TaskTracker: React.FC<TaskTrackerProps> = ({ onNavigate, onAddPoint
     };
 
     return (
-        <div className="bg-white/80 backdrop-blur-xl rounded-[32px] p-6 shadow-[0_15px_45px_-12px_rgba(0,0,0,0.08)] hover:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.12)] border border-white/40 ring-1 ring-white/60 animate-in fade-in slide-in-from-bottom duration-500 relative overflow-hidden group transition-all duration-500">
+        <div className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-300 animate-in fade-in slide-in-from-bottom duration-500 relative overflow-hidden group transition-all duration-500">
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/20 to-transparent pointer-events-none" />
 
             {tasks.length > 0 && (
@@ -95,7 +95,7 @@ export const TaskTracker: React.FC<TaskTrackerProps> = ({ onNavigate, onAddPoint
                         onChange={(e) => setNewTaskName(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && addTask()}
                         placeholder="Nombre del prospecto..."
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-5 text-sm font-bold text-slate-900 focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-400 focus:bg-white focus:outline-none transition-all placeholder:text-slate-300 shadow-inner"
+                        className="w-full bg-slate-50 border-2 border-slate-300 rounded-2xl px-5 py-5 text-sm font-bold text-slate-900 focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-400 focus:bg-white focus:outline-none transition-all placeholder:text-slate-400 shadow-inner"
                     />
                     <div className="absolute right-4 top-1/2 -translate-y-1/2">
                         <Zap size={14} className={`transition-colors ${newTaskName ? 'text-amber-400 animate-pulse' : 'text-slate-200'}`} fill="currentColor" />
@@ -104,7 +104,7 @@ export const TaskTracker: React.FC<TaskTrackerProps> = ({ onNavigate, onAddPoint
                 <button
                     onClick={addTask}
                     disabled={!newTaskName.trim()}
-                    className="w-16 h-auto bg-slate-900 text-white rounded-2xl hover:bg-black disabled:opacity-20 transition-all shadow-xl shadow-slate-200 flex items-center justify-center shrink-0 active:scale-95 border-b-4 border-slate-700 hover:border-slate-800"
+                    className="w-16 h-auto bg-slate-900 text-white rounded-2xl hover:bg-black disabled:opacity-20 transition-all shadow-xl shadow-slate-200 flex items-center justify-center shrink-0 active:scale-95 border-b-4 border-slate-700 hover:border-slate-800 border border-slate-300"
                 >
                     <Plus size={28} strokeWidth={4} />
                 </button>
@@ -112,23 +112,24 @@ export const TaskTracker: React.FC<TaskTrackerProps> = ({ onNavigate, onAddPoint
 
             <div className="space-y-3 relative z-10">
                 {tasks.length === 0 ? (
-                    <div className="text-center py-10 bg-slate-50/50 rounded-[28px] border-2 border-dashed border-slate-200/60 transition-all hover:bg-white hover:border-indigo-200 px-4">
-                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-100">
+                    <div className="flex items-center gap-4 py-6 bg-slate-50/50 rounded-[28px] border border-slate-300 transition-all hover:bg-white hover:border-indigo-200 px-6">
+                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 shrink-0">
                             <Zap size={24} className="text-amber-400" fill="currentColor" />
                         </div>
-                        <p className="text-sm text-slate-600 font-black uppercase tracking-tight">Tu lista está vacía</p>
-                        <p className="text-[11px] text-slate-400 font-medium mt-1">
-                            Añade a alguien ahora y desbloquea<br />
-                            el impulso de hoy.
-                        </p>
+                        <div className="text-left">
+                            <p className="text-[13px] text-slate-800 font-black uppercase tracking-tight leading-tight">Tu lista está vacía</p>
+                            <p className="text-[12px] text-slate-400 font-bold mt-1">
+                                Añade a alguien ahora
+                            </p>
+                        </div>
                     </div>
                 ) : (
                     tasks.map((task) => (
                         <div
                             key={task.id}
                             className={`flex items-center justify-between p-4.5 rounded-[22px] border-2 transition-all duration-300 relative overflow-hidden group/item ${task.completed
-                                ? 'bg-slate-50/80 border-slate-100 opacity-50 grayscale-[0.5]'
-                                : 'bg-white border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(79,70,229,0.08)] hover:border-indigo-200 hover:-translate-y-0.5'
+                                ? 'bg-slate-50/80 border-slate-100 opacity-60'
+                                : 'bg-white border-slate-300 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(79,70,229,0.08)] hover:border-indigo-200 hover:-translate-y-0.5'
                                 }`}
                         >
                             {/* Subtle accent line for active tasks */}

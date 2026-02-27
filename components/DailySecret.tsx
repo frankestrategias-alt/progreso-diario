@@ -53,7 +53,7 @@ export const DailySecret: React.FC = () => {
                         <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/40 border-4 border-white/40 group-hover:rotate-12 transition-transform">
                             <Lock size={28} className="text-white" />
                         </div>
-                        <h3 className="text-purple-200/60 font-black uppercase tracking-[0.3em] text-xs mb-2">Alpha Secret</h3>
+                        <h3 className="text-purple-200/60 font-black uppercase tracking-[0.3em] text-xs mb-2">Alfa Secreto</h3>
                         <p className="text-white text-[10px] font-bold uppercase tracking-widest opacity-60">Haz clic para revelar el secreto de hoy</p>
                     </div>
                     {/* Floating Sparkles */}

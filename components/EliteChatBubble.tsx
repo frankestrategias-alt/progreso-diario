@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Crown, Send, X, Mic, MicOff, Volume2, Sparkles } from 'lucide-react';
 import { generateEliteAssistantResponse, speak, unlockAudio } from '../services/geminiService';
+import { trackEvent } from '../services/firebase';
 
 const EliteChatBubble: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -75,7 +76,7 @@ const EliteChatBubble: React.FC = () => {
                                 </div>
                                 <div className="flex flex-col">
                                     <h3 className="text-white font-outfit text-base font-bold flex items-center gap-1.5">
-                                        Asistente <Bot size={14} className="text-[#c5a059]" />
+                                        Asistente
                                     </h3>
                                     <div className="flex items-center gap-1.5 mt-0.5">
                                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
@@ -85,13 +86,16 @@ const EliteChatBubble: React.FC = () => {
                             </div>
 
                             <a
-                                href="https://sistemapremium.netlify.app/?utm_source=networkerpro&utm_medium=agent"
+                                onClick={() => trackEvent('click_premium_checkout', { origin: 'chat_bubble' })}
+                                href="https://sistemapremium.netlify.app/?origen=app"
                                 target="_blank"
-                                rel="noreferrer"
-                                className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg shadow-orange-500/20 hover:scale-105 active:scale-95 transition-all outline-none"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[10px] font-black px-4 py-2 rounded-2xl shadow-lg shadow-orange-500/20 hover:scale-105 active:scale-95 transition-all outline-none border border-white/20 overflow-hidden"
                             >
-                                <Crown size={12} />
-                                <span>PREMIUM</span>
+                                <div className="flex items-center gap-1.5 animate-pulse">
+                                    <Crown size={12} className="animate-zap-pulse" />
+                                    <span>SISTEMA PREMIUM</span>
+                                </div>
                             </a>
                         </div>
 

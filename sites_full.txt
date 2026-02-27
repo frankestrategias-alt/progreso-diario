@@ -1,0 +1,33 @@
+
+────────────────────────────┐
+ Current Netlify Projects │
+────────────────────────────┘
+
+Count: 6
+
+sistemapremium - 7f57bf47-98f0-46cd-a396-81b2c73856da
+  url:  https://sistemapremium.netlify.app
+  account: APP de Frank
+─────────────────────────────────────────────────
+networker-pro - b4d484f1-0059-4143-ab70-3bb0326f0418
+  url:  https://networker-pro.netlify.app
+  repo: https://github.com/frankestrategias-alt/progreso-diario
+  account: APP de Frank
+─────────────────────────────────────────────────
+phenomenal-capybara-933382 - c00907f8-4cba-4a34-96f1-ab210ddaa0f7
+  url:  https://phenomenal-capybara-933382.netlify.app
+  account: APP de Frank
+─────────────────────────────────────────────────
+musical-mermaid-fc1a0f - c6b4c9f2-d8b3-4cf0-b81e-f888f61d65d3
+  url:  https://musical-mermaid-fc1a0f.netlify.app
+  repo: https://github.com/frankestrategias-alt/progreso-diario
+  account: APP de Frank
+─────────────────────────────────────────────────
+mlm-progreso-diario - e50d1e61-24be-4e39-bd3c-360337ac9de9
+  url:  https://mlm-progreso-diario.netlify.app
+  account: APP de Frank
+─────────────────────────────────────────────────
+profound-dusk-8d33c6 - 15ce8f5d-763c-41fa-8578-66ac4a20ba5f
+  url:  https://profound-dusk-8d33c6.netlify.app
+  account: APP de Frank
+─────────────────────────────────────────────────

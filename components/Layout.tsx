@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowLeft, Layout as LayoutIcon, Users, BarChart2, ShoppingBag } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 import { InstallPrompt } from './InstallPrompt';
 import EliteChatBubble from './EliteChatBubble';
 import { ViewState } from '../types';
@@ -26,7 +27,7 @@ export const Layout: React.FC<LayoutProps> = ({
   currentView
 }) => {
   return (
-    <div className="h-screen h-[100dvh] bg-gradient-to-br from-slate-50 via-indigo-50/30 to-slate-200 text-slate-900 flex flex-col max-w-md mx-auto shadow-2xl relative overflow-hidden tap-highlight-none selection:bg-indigo-100 selection:text-indigo-900">
+    <div className="h-screen h-[100dvh] w-full bg-gradient-to-br from-slate-50 via-indigo-50/30 to-slate-200 text-slate-900 flex flex-col max-w-lg mx-auto shadow-2xl relative overflow-x-hidden tap-highlight-none selection:bg-indigo-100 selection:text-indigo-900 overflow-y-hidden" style={{ touchAction: 'pan-y' }}>
       {/* Header - Elite Sticky Navigation */}
       {!hideHeader && (
         <header
@@ -70,25 +71,26 @@ export const Layout: React.FC<LayoutProps> = ({
               </div>
             )}
 
-            {/* Dynamic Section Title - Now visible in Mobile */}
-            <div className="flex-1 min-w-0">
-              <h1 className="text-[12px] font-black text-slate-800 uppercase tracking-[0.1em] truncate animate-in slide-in-from-left duration-500 leading-none">
-                {title}
-              </h1>
-            </div>
+            {/* Dynamic Section Title - Removed for minimalistic icon-based navigation */}
           </div>
 
           {rightContent && (
             <div className="flex items-center gap-2">
+              <ThemeToggle />
               {rightContent}
+            </div>
+          )}
+          {!rightContent && (
+            <div className="flex items-center pr-4">
+              <ThemeToggle />
             </div>
           )}
         </header>
       )}
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto scrollbar-hide pt-20">
-        <div className="animate-fade-in min-h-full flex flex-col p-4 pb-10">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden w-full scroll-smooth scrollbar-hide pt-20">
+        <div className="animate-fade-in min-h-full flex flex-col px-3 py-4 pb-20">
           <div className="flex-1">
             {children}
           </div>
@@ -99,11 +101,11 @@ export const Layout: React.FC<LayoutProps> = ({
               <h4 className="text-[14px] font-black text-slate-800 uppercase tracking-[0.3em] mb-1">
                 Networker Pro
               </h4>
-              <div className="h-0.5 w-8 bg-indigo-500/20 mx-auto rounded-full"></div>
+              <div className="h-1 w-12 bg-indigo-500/60 mx-auto rounded-full"></div>
             </div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] leading-relaxed">
+            <p className="text-[11px] font-bold text-slate-600 uppercase tracking-[0.2em] leading-relaxed">
               App diseñada y creada por <br />
-              <span className="text-slate-500 font-extrabold">Frank Estrategias</span>
+              <span className="font-extrabold">Frank Estrategias</span>
             </p>
           </footer>
         </div>

@@ -5,6 +5,17 @@ import App from './App';
 import './index.css';
 
 import { AppProvider } from './contexts/AppContext';
+import { registerSW } from 'virtual:pwa-register';
+
+// Register PWA Service Worker for Offline support
+const updateSW = registerSW({
+  onNeedRefresh() {
+    console.log("Nueva versión disponible. Recargue para actualizar.");
+  },
+  onOfflineReady() {
+    console.log("App lista para funcionar offline.");
+  },
+});
 
 const rootElement = document.getElementById('root');
 if (rootElement) {
@@ -22,5 +33,4 @@ if (rootElement) {
   console.error("Critical: Root element not found");
 }
 
-// NOTE: SW registration is handled by the script in index.html (Nuke) 
-// and potentially VitePWA. Removing manual block to avoid loader conflicts.
+// NOTE: VitePWA registration is now natively handled mapped above via virtual module.

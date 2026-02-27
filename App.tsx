@@ -22,7 +22,8 @@ import { HelpModal } from './components/HelpModal';
 import { Layout } from './components/Layout';
 import { Onboarding } from './components/Onboarding';
 import { DuplicationModal } from './components/DuplicationModal';
-import { deserializeGoals } from './services/duplicationService';
+import { ProactiveSalesModal } from './components/ProactiveSalesModal';
+import { useDuplicationProtocol } from './hooks/useDuplicationProtocol';
 
 import { ViewState, DailyProgress, UserGoals, GamificationState, LEVELS } from './types';
 import { useAppContext } from './contexts/AppContext';
@@ -52,26 +53,10 @@ function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboardingSeen'));
 
-  // DUPLICATION PROTOCOL: Check for incoming shared goals (Synchronous to avoid flash)
-  const [incomingGoals, setIncomingGoals] = useState<UserGoals | null>(() => {
-    const params = new URLSearchParams(window.location.search);
-    const hashPart = window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '';
-    const hashParams = new URLSearchParams(hashPart);
-    const dupParam = params.get('dup') || hashParams.get('dup');
-
-    if (dupParam) {
-      console.log('📡 Protocolo de Duplicación detectado...');
-      const decoded = deserializeGoals(dupParam);
-      if (decoded) {
-        console.log('✅ Visión de Líder cargada:', decoded.companyName);
-        return decoded;
-      }
-    }
-    return null;
-  });
-
+  // DUPLICATION PROTOCOL (Extracted to hook)
+  const { incomingGoals, setIncomingGoals } = useDuplicationProtocol();
   // FORCE CACHE CLEANING (VERSIONING) & URL Cleanup
-  const APP_VERSION = '1.7.2-ultra'; // Super Nuke - Chrome fix
+  const APP_VERSION = '1.7.3-ultra'; // Super Nuke - Chrome fix
   useEffect(() => {
     const savedVersion = localStorage.getItem('appVersion');
     if (savedVersion && savedVersion !== APP_VERSION) {
@@ -112,11 +97,6 @@ function App() {
     window.addEventListener('error', handleError);
     window.addEventListener('unhandledrejection', handleError);
 
-    // Clean URL if we detected a duplication link on init
-    if (incomingGoals) {
-      const newUrl = window.location.origin + window.location.pathname + window.location.hash.split('?')[0];
-      window.history.replaceState({}, '', newUrl);
-    }
   }, []);
 
   const navigateTo = (newView: ViewState, forceRefresh = false) => {
@@ -143,6 +123,8 @@ function App() {
   const {
     showLevelUp,
     setShowLevelUp,
+    showProactiveSales,
+    setShowProactiveSales,
     addPoints,
     completeMission,
     handleRecordContact,
@@ -242,12 +224,14 @@ function App() {
           setGoals(prev => ({ ...prev, companyName: company, productNiche: niche }));
           localStorage.setItem('onboardingSeen', 'true');
           setShowOnboarding(false);
-          confetti({
-            particleCount: 150,
-            spread: 70,
-            origin: { y: 0.6 }
-          });
-          playSound('success');
+          try {
+            confetti({
+              particleCount: 150,
+              spread: 70,
+              origin: { y: 0.6 }
+            });
+            playSound('success');
+          } catch (e) { console.warn('Onboarding effects failed', e); }
         }} />
       )}
 
@@ -258,13 +242,15 @@ function App() {
           onAccept={() => {
             setGoals(incomingGoals);
             setIncomingGoals(null);
-            confetti({
-              particleCount: 200,
-              spread: 100,
-              origin: { y: 0.6 },
-              colors: ['#6366f1', '#a855f7', '#ec4899']
-            });
-            playSound('success');
+            try {
+              confetti({
+                particleCount: 200,
+                spread: 100,
+                origin: { y: 0.6 },
+                colors: ['#6366f1', '#a855f7', '#ec4899']
+              });
+              playSound('success');
+            } catch (e) { console.warn('Duplication effects failed', e); }
             // If they accepted duplication, ensure onboarding is marked as seen
             if (showOnboarding) {
               localStorage.setItem('onboardingSeen', 'true');
@@ -272,6 +258,14 @@ function App() {
             }
           }}
           onCancel={() => setIncomingGoals(null)}
+        />
+      )}
+
+      {/* Proactive Sales UI Gatillo (Hack 2) */}
+      {showProactiveSales && (
+        <ProactiveSalesModal
+          triggerReason={showProactiveSales.trigger}
+          onClose={() => setShowProactiveSales(null)}
         />
       )}
 

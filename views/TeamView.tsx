@@ -140,13 +140,15 @@ export const TeamView: React.FC<TeamViewProps> = ({ onJoinTeam, onBack }) => {
                         {/* Leader Contact Section */}
                         <div className="mt-8 border-t border-slate-200 pt-8 w-full">
                             <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">¿Eres el líder de una organización?</p>
-                            <button
-                                onClick={() => window.open('https://wa.me/573134140978?text=' + encodeURIComponent('Hola, soy líder y me gustaría implementar el sistema de licencias para mi equipo en Networker Pro 🚀'), '_blank')}
+                            <a
+                                href={'https://wa.me/573134140978?text=' + encodeURIComponent('Hola, soy líder y me gustaría implementar el sistema de licencias para mi equipo en Networker Pro 🚀')}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="inline-flex items-center gap-2 text-indigo-600 font-black text-xs uppercase tracking-widest hover:text-indigo-700 transition-colors"
                             >
                                 <MessageSquare size={16} />
                                 Solicitar Licencia para mi Equipo
-                            </button>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -200,8 +202,10 @@ export const TeamView: React.FC<TeamViewProps> = ({ onJoinTeam, onBack }) => {
                     </div>
 
                     <div className="space-y-3">
-                        <button
-                            onClick={() => window.open(`https://wa.me/${activeTeam?.leaderWhatsApp || ''}?text=` + encodeURIComponent(`Hola, necesito soporte de uno de los sistemas de equipo en Networker Pro 🚀 (ID: ${activeTeam?.id})`), '_blank')}
+                        <a
+                            href={`https://wa.me/${activeTeam?.leaderWhatsApp || ''}?text=` + encodeURIComponent(`Hola, necesito soporte de uno de los sistemas de equipo en Networker Pro 🚀 (ID: ${activeTeam?.id})`)}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="w-full bg-slate-900 text-white p-5 rounded-[28px] font-black shadow-lg flex items-center justify-between group active:scale-95 transition-all"
                         >
                             <div className="flex items-center gap-3">
@@ -214,7 +218,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onJoinTeam, onBack }) => {
                                 </div>
                             </div>
                             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                        </button>
+                        </a>
 
                         <button
                             onClick={() => onJoinTeam('')}

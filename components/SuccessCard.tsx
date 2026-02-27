@@ -1,7 +1,8 @@
-import React from 'react';
-import { Share2, Download, X, ShieldCheck, Zap } from 'lucide-react';
+import React, { useState } from 'react';
+import { Share2, X, Check, Trophy } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { triggerMagic } from '../utils/magic';
+import { trackEvent } from '../services/firebase';
 
 interface SuccessCardProps {
     objection: string;
@@ -10,120 +11,121 @@ interface SuccessCardProps {
 }
 
 export const SuccessCard: React.FC<SuccessCardProps> = ({ objection, response, onClose }) => {
-    const cardRef = React.useRef<HTMLDivElement>(null);
+    const [copied, setCopied] = useState(false);
 
     const handleShare = async () => {
-        // Trigger celebraton!
+        // Sonidos y confeti
         triggerMagic();
         confetti({
             particleCount: 150,
             spread: 70,
-            origin: { y: 0.6 },
-            colors: ['#34d399', '#10b981', '#6366f1', '#fbbf24']
+            origin: { y: 0.7 },
+            colors: ['#34d399', '#fbbf24', '#6366f1']
         });
+
+        const shareText = `🔥 *¡OBJECIÓN SUPERADA!* 🔥\n\n📌 *El Prospecto dijo:* "${objection}"\n🛡️ *Mi Respuesta Pro:* "${response}"\n\n_Generado con Networker Pro_ 🚀`;
 
         if (navigator.share) {
             try {
+                trackEvent('share_success', { method: 'native' });
                 await navigator.share({
-                    title: '¡Objeción Superada!',
-                    text: `Prospecto: "${objection}"\n\nRespuesta Pro: ${response}\n\nGenerado con Networker Pro 🛡️`,
-                    url: window.location.origin,
+                    title: 'Victoria de Cierre 🛡️',
+                    text: shareText,
+                    url: 'https://sistemapremium.netlify.app/?origen=app'
                 });
             } catch (err) {
-                console.log('Error sharing', err);
+                // Si el usuario cancela o hay error en el menú nativo, vamos directo a WhatsApp
+                trackEvent('share_success', { method: 'whatsapp_fallback' });
+                directWhatsAppShare(shareText);
             }
         } else {
-            // Fallback: Copy to clipboard if sharing is not available
-            navigator.clipboard.writeText(`Prospecto: "${objection}"\n\nRespuesta Pro: ${response}`);
+            trackEvent('share_success', { method: 'whatsapp_direct' });
+            directWhatsAppShare(shareText);
+        }
+    };
+
+    const directWhatsAppShare = (text: string) => {
+        const encodedText = encodeURIComponent(text);
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
+
+        // Intentamos abrir WhatsApp
+        window.open(whatsappUrl, '_blank');
+
+        // También copiamos al portapapeles por seguridad
+        copyToClipboard(text);
+    };
+
+    const copyToClipboard = (text: string) => {
+        try {
+            navigator.clipboard.writeText(text).then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 3000);
+            });
+        } catch (e) {
+            console.error("Clipboard fail", e);
         }
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="relative w-full max-w-sm animate-in zoom-in-95 duration-300">
-                {/* Close Button */}
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="relative w-full max-w-[340px] animate-in zoom-in-95 duration-500">
+
+                {/* Botón Cerrar Flotante */}
                 <button
                     onClick={onClose}
-                    className="absolute -top-12 right-0 p-2 text-white/70 hover:text-white transition-colors"
+                    className="absolute -top-12 right-0 text-white/40 hover:text-white transition-colors p-2"
                 >
                     <X size={24} />
                 </button>
 
-                {/* THE PREMIUM CARD */}
-                <div
-                    ref={cardRef}
-                    className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 shadow-2xl border border-white/10"
-                >
-                    {/* Decorative Elements */}
-                    <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/20 rounded-full blur-[80px] -mr-20 -mt-20"></div>
-                    <div className="absolute bottom-0 left-0 w-40 h-40 bg-emerald-500/20 rounded-full blur-[80px] -ml-20 -mb-20"></div>
+                {/* LA TARJETA (ESTILO GEMA SIMPLIFICADA) */}
+                <div className="bg-[#0b1222] rounded-[36px] overflow-hidden border border-white/10 shadow-[0_32px_80px_rgba(0,0,0,0.6)] relative p-7">
 
-                    {/* Header */}
-                    <div className="relative z-10 flex items-center gap-3 mb-8">
-                        <div className="p-2.5 bg-emerald-500 rounded-xl shadow-lg shadow-emerald-500/40">
-                            <ShieldCheck size={20} className="text-white" />
+                    {/* Brillo de fondo sutil */}
+                    <div className="absolute -top-20 -right-20 w-48 h-48 bg-emerald-500/10 rounded-full blur-[80px]" />
+
+                    {/* Icono de Victoria */}
+                    <div className="flex flex-col items-center text-center mb-8 relative z-10">
+                        <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/20 transform rotate-3">
+                            <Trophy size={32} className="text-white" />
                         </div>
-                        <div>
-                            <h4 className="text-[10px] font-black uppercase tracking-[3px] text-emerald-400">Status: Superado</h4>
-                            <p className="text-white font-bold text-sm tracking-tight">Networker Pro Intelligence</p>
-                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">¡Logro Desbloqueado!</p>
+                        <h2 className="text-xl font-black text-white">Cierre Maestro</h2>
                     </div>
 
-                    {/* Content Section */}
-                    <div className="relative z-10 space-y-6">
+                    {/* Contenido Minimalista */}
+                    <div className="space-y-6 mb-8 relative z-10">
                         <div className="space-y-2">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
-                                Lo que el prospecto dijo
-                            </p>
-                            <div className="bg-white/5 border border-white/5 rounded-2xl p-4">
-                                <p className="text-slate-200 text-sm font-medium italic">"{objection}"</p>
-                            </div>
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">El Desafío:</span>
+                            <p className="text-slate-300 text-sm font-bold italic line-clamp-2 opacity-80 leading-relaxed">"{objection}"</p>
                         </div>
 
-                        <div className="space-y-2">
-                            <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2">
-                                <Zap size={10} fill="currentColor" />
-                                Respuesta Ganadora
+                        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-5">
+                            <p className="text-white text-base font-bold leading-relaxed text-center italic">
+                                "{response.length > 120 ? response.substring(0, 120) + '...' : response}"
                             </p>
-                            <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-2xl p-4">
-                                <p className="text-white text-sm font-bold leading-relaxed">
-                                    {response.length > 150 ? response.substring(0, 150) + '...' : response}
-                                </p>
-                            </div>
                         </div>
                     </div>
 
-                    {/* Footer / Branding */}
-                    <div className="relative z-10 mt-10 pt-6 border-t border-white/5 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center">
-                                <div className="w-2.5 h-2.5 bg-emerald-500 rounded-sm rotate-45"></div>
-                            </div>
-                            <span className="text-xs font-black text-white/50 tracking-tighter">NETWORKER PRO</span>
-                        </div>
-                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                            V 2.0
-                        </div>
-                    </div>
-                </div>
-
-                {/* Interaction Buttons */}
-                <div className="flex gap-4 mt-6">
+                    {/* Botón de Acción Principal */}
                     <button
                         onClick={handleShare}
-                        className="flex-1 bg-white text-slate-900 py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all"
+                        className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all relative overflow-hidden active:scale-95 shadow-xl ${copied ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-white text-slate-900 hover:scale-[1.02]'
+                            }`}
                     >
-                        <Share2 size={18} />
-                        Compartir Éxito
+                        {copied ? (
+                            <>¡Copiado! <Check size={18} /></>
+                        ) : (
+                            <>Inspirar Mi Equipo <Share2 size={18} /></>
+                        )}
                     </button>
-                    {/* Placeholder for "Save as Image" in the future if needed */}
-                </div>
 
-                <p className="text-center text-white/40 text-[10px] mt-4 font-medium uppercase tracking-widest">
-                    Saca un pantallazo y súbelo a tus estados
-                </p>
+                    <p className="text-center text-white/20 text-[9px] mt-4 font-bold uppercase tracking-widest">
+                        Compartir es liderar ✨
+                    </p>
+                </div>
             </div>
         </div>
     );
 };
+export default SuccessCard;

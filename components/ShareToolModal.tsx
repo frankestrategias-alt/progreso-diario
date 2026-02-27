@@ -24,9 +24,9 @@ export const ShareToolModal: React.FC<ShareToolModalProps> = ({ onClose, onShare
                     <X size={20} />
                 </button>
 
-                <div className="relative z-10 p-8 pt-12 flex flex-col items-center text-center">
+                <div className="relative z-10 p-6 pt-10 flex flex-col items-center text-center">
                     {/* Rocket Icon Container */}
-                    <div className="relative mb-8 group">
+                    <div className="relative mb-6 group">
                         <div className="absolute inset-0 bg-indigo-500 blur-[40px] opacity-40 group-hover:opacity-60 transition-opacity"></div>
                         <div className="relative bg-gradient-to-b from-white/10 to-transparent p-6 rounded-full border border-white/20 backdrop-blur-sm">
                             <Rocket size={48} className="text-white animate-[bounce_3s_infinite]" />
@@ -37,14 +37,14 @@ export const ShareToolModal: React.FC<ShareToolModalProps> = ({ onClose, onShare
                     </div>
 
                     <div className="max-w-[340px] mx-auto">
-                        <h3 className="text-[22px] font-black text-white mb-6 leading-tight">
+                        <h3 className="text-[22px] font-black text-white mb-4 leading-tight">
                             Crecer solo toma tiempo.<br />
                             Duplicar acelera todo.
                         </h3>
                     </div>
 
                     {/* Description text - Professional Harmony */}
-                    <p className="text-indigo-100/70 text-[13px] font-medium leading-relaxed mb-10 px-4">
+                    <p className="text-indigo-100/70 text-[13px] font-medium leading-relaxed mb-6 px-4">
                         Hoy puedes ayudar a alguien<br />
                         a crecer contigo.
                     </p>
@@ -59,7 +59,7 @@ export const ShareToolModal: React.FC<ShareToolModalProps> = ({ onClose, onShare
                     </button>
 
                     {/* Curiosity Hook (Lock) - Custom Premium Polish */}
-                    <div className="mt-10 flex items-center gap-5 bg-black/40 px-7 py-5 rounded-[22px] border border-white/10 w-full">
+                    <div className="mt-6 flex items-center gap-5 bg-black/40 px-7 py-5 rounded-[22px] border border-white/10 w-full">
                         <div className="text-indigo-400 flex-shrink-0">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M12 2C9.24 2 7 4.24 7 7V10H6C4.9 10 4 10.9 4 12V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V12C20 10.9 19.1 10 18 10H17V7C17 4.24 14.76 2 12 2ZM9 7C9 5.34 10.34 4 12 4C13.66 4 15 5.34 15 7V10H9V7ZM12 18C11.17 18 10.5 17.33 10.5 16.5C10.5 15.67 11.17 15 12 15C12.83 15 13.5 15.67 13.5 16.5C13.5 17.33 12.83 18 12 18Z" />

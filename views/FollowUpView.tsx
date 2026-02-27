@@ -32,6 +32,7 @@ export const FollowUpView: React.FC<FollowUpViewProps> = ({ onRecordAction, onNa
   const handleResult = (result: 'success' | 'later') => {
     if (result === 'success') {
       triggerMagic();
+      onRecordAction(); // Register activity for the dashboard
       alert("¡Esa es la actitud! 🔥 Sigue sembrando.");
       if (onNavigate) onNavigate('HOME', true);
     }
@@ -181,13 +182,12 @@ export const FollowUpView: React.FC<FollowUpViewProps> = ({ onRecordAction, onNa
               />
 
               {/* Context Chips - Follow Up Speed */}
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap gap-2 justify-center">
                 {[
                   { label: '📺 Vio el Video', text: 'Vio el video de presentación pero no hemos agendado el cierre.' },
                   { label: '❓ Dudas Precio', text: 'Me preguntó sobre los costos y la inversión inicial.' },
                   { label: '💤 No Responde', text: 'Le envié info hace días y me dejó en "visto".' },
-                  { label: '🤝 Interesado', text: 'Dijo que le gusta pero tiene miedo de no tener tiempo.' },
-                  { label: '🏁 Cierre Pendiente', text: 'Quedamos en hablar hoy para tomar una decisión final.' }
+                  { label: '🤝 Interesado', text: 'Dijo que le gusta pero tiene miedo de no tener tiempo.' }
                 ].map((chip) => (
                   <button
                     key={chip.label}

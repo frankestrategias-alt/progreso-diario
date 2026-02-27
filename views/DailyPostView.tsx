@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Zap, Copy, CheckCircle2, Sparkles, Palette,
-    Megaphone, Check, Flame, ArrowRight, Lightbulb, Share2, ArrowLeft, X, Trophy
+    Megaphone, Check, Flame, ArrowRight, Lightbulb, Share2, ArrowLeft, X, Trophy, Rocket
 } from 'lucide-react';
 import { generateSocialPost, SocialStrategy } from '../services/geminiService';
 import { triggerMagic } from '../utils/magic';
@@ -19,13 +19,13 @@ interface DailyPostViewProps {
 
 // --- STRATEGY ROTATION SYSTEM ---
 const DAILY_STRATEGIES = [
-    { day: 0, theme: "Planificación & Visión", hook: "La semana se gana antes de que empiece...", prompt: "Comparte TU META principal para esta semana.", icon: "🎯" },
-    { day: 1, theme: "Mentalidad de Líder", hook: "Lo que veo venir es gigante...", prompt: "Comparte tu VISIÓN sobre el futuro de tu equipo.", icon: "🧠" },
-    { day: 2, theme: "Producto & Resultado", hook: "No creerás lo que acaba de pasar...", prompt: "Cuenta un BENEFICIO clave o un testimonio.", icon: "✨" },
-    { day: 3, theme: "Estilo de Vida", hook: "Mi oficina de hoy se ve así...", prompt: "Muestra tu LIBERTAD: ¿Dónde estás hoy?", icon: "🌴" },
-    { day: 4, theme: "TBT (Historia)", hook: "Hace un año estaba...", prompt: "Muestra tu PROGRESO: ¿Cómo eras antes?", icon: "⏳" },
-    { day: 5, theme: "Valor Educativo", hook: "3 cosas que aprendí sobre...", prompt: "Enseña un TIP RÁPIDO de tu industria.", icon: "📚" },
-    { day: 6, theme: "Personal & Relax", hook: "Desconectando para reconectar...", prompt: "¿Qué haces para RECARGAR energía?", icon: "🔋" },
+    { day: 0, theme: "Visión & Equipo", hook: "Lo que viene esta semana es nivel leyenda...", prompt: "¿Cuál es tu sueño más grande para estos días?", icon: "🎯" },
+    { day: 1, theme: "Mentalidad Ganadora", hook: "Aprendí algo que me cambió la jugada hoy...", prompt: "¿Qué lección te dejó el día de hoy?", icon: "🧠" },
+    { day: 2, theme: "Resultados & Magia", hook: "¡Mira esto! Los resultados hablan por sí solos...", prompt: "¿Qué éxito (grande o pequeño) quieres celebrar?", icon: "✨" },
+    { day: 3, theme: "Libertad de Movimiento", hook: "Mi oficina no tiene paredes, hoy ando por aquí...", prompt: "¿Desde dónde estás trabajando hoy?", icon: "🌍" },
+    { day: 4, theme: "Tu Historia de Poder", hook: "Si me hubieran dicho hace un año dónde estaría hoy...", prompt: "¿Dinos una cosa que ha mejorado en tu vida?", icon: "⏳" },
+    { day: 5, theme: "Consejo de Experto", hook: "Mucha gente me pregunta el secreto del éxito...", prompt: "¿Qué consejo le darías a alguien que está empezando?", icon: "💡" },
+    { day: 6, theme: "Gratitud & Estilo", hook: "Recargando baterías para una semana épica...", prompt: "¿Por qué estás agradecido hoy?", icon: "🔋" },
 ];
 
 export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, onRecordAction, onNavigate }) => {
@@ -173,26 +173,45 @@ export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, on
     // --- VIEW 0: ZEN MODE (POWER BUTTON) ---
     if (step === 0) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] animate-in fade-in duration-700">
-                <div className="relative group cursor-pointer" onClick={handleActivate}>
-                    <div className="absolute inset-0 bg-indigo-500 blur-[60px] opacity-20 group-hover:opacity-40 transition-opacity duration-500 rounded-full"></div>
-                    <button
-                        className="relative w-48 h-48 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-2xl shadow-indigo-300 flex flex-col items-center justify-center gap-2 transform transition-all duration-300 group-hover:scale-105 active:scale-95 border-4 border-indigo-400/30"
-                    >
-                        <Zap size={48} className="fill-white animate-pulse" />
-                        <span className="text-sm font-black tracking-widest uppercase">Activar Día</span>
-                    </button>
+            <div className="flex flex-col items-center justify-center min-h-[65vh] animate-in fade-in zoom-in duration-1000">
+                {/* Glow Background */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
 
-                    {/* Ring Animation */}
-                    <div className="absolute inset-0 border-2 border-indigo-500/20 rounded-full animate-[ping_3s_ease-in-out_infinite]"></div>
+                <div className="relative group cursor-pointer" onClick={handleActivate}>
+                    {/* Ring Animations */}
+                    <div className="absolute inset-0 border-2 border-indigo-500/20 rounded-full animate-[ping_4s_ease-in-out_infinite]" />
+                    <div className="absolute -inset-4 border border-indigo-400/10 rounded-full animate-[ping_6s_ease-in-out_infinite] delay-1000" />
+
+                    <button
+                        className="relative w-52 h-52 rounded-full bg-slate-900 border-8 border-slate-800 shadow-[0_32px_64px_-16px_rgba(79,70,229,0.3)] flex flex-col items-center justify-center gap-3 transform transition-all duration-500 group-hover:scale-105 active:scale-95 overflow-hidden"
+                    >
+                        {/* Shimmer Effect */}
+                        <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+
+                        <Zap size={48} className="text-amber-400 fill-amber-400 animate-zap-pulse drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]" />
+                        <div className="text-center relative z-10">
+                            <span className="block text-[10px] font-black tracking-[0.3em] uppercase text-indigo-400 mb-1">
+                                {new Date().toLocaleDateString('es-ES', { weekday: 'long' })}
+                            </span>
+                            <span className="block text-sm font-black tracking-widest uppercase text-white">
+                                Activar Día
+                            </span>
+                        </div>
+                    </button>
                 </div>
 
-                <div className="mt-12 text-center space-y-2">
-                    <h2 className="text-xl font-black text-slate-800 tracking-tight">
-                        {currentStrategy.icon} Hoy toca: <span className="text-indigo-600">{currentStrategy.theme}</span>
-                    </h2>
-                    <p className="text-sm text-slate-400 font-medium max-w-xs mx-auto">
-                        Tu estrategia ya está lista. Solo pulsa el botón.
+                <div className="mt-16 text-center space-y-4 relative z-10">
+                    <div className="inline-flex items-center gap-3 bg-white px-8 py-3.5 rounded-full border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] group-hover:border-indigo-200 transition-all">
+                        <span className="text-2xl transform group-hover:scale-125 transition-transform duration-500">
+                            {currentStrategy.icon}
+                        </span>
+                        <h2 className="text-[15px] font-black text-slate-800 tracking-tight">
+                            Hoy toca: <span className="text-indigo-600 font-extrabold">{currentStrategy.theme}</span>
+                        </h2>
+                    </div>
+
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] max-w-xs mx-auto leading-relaxed">
+                        Tu estrategia de liderazgo está lista
                     </p>
                 </div>
             </div>
@@ -216,98 +235,127 @@ export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, on
     // --- VIEW 2: RESULTS (HIGH IMPACT) ---
     if (step === 2 && strategy) {
         return (
-            <div className="max-w-xl mx-auto pt-20 pb-20 animate-in slide-in-from-right duration-500 px-4">
-                {/* Visual Mission Card */}
-                <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-[24px] p-5 text-white shadow-2xl shadow-indigo-200 mb-4 relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-2 mb-2">
-                            <div className="p-1.5 bg-white/10 rounded-lg backdrop-blur-sm">
-                                <Palette size={16} className="text-amber-400" />
-                            </div>
-                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-200">
-                                Misión Visual
-                            </span>
+            <div className="max-w-2xl mx-auto pt-6 pb-24 animate-in slide-in-from-right duration-700 px-2">
+
+                {/* Header Page */}
+                <div onClick={() => setStep(1)} className="mb-8 flex items-center gap-3 cursor-pointer group">
+                    <div className="p-2 bg-slate-100 rounded-xl text-slate-500 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
+                        <ArrowLeft size={16} />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-black text-slate-900 leading-tight">Tu Estrategia Elite</h2>
+                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Generada con Inteligencia Artificial</p>
+                    </div>
+                </div>
+
+                {/* Visual Mission Card (The "What to Show") */}
+                <div className="bg-slate-900 rounded-[32px] p-8 text-white shadow-2xl shadow-indigo-200/50 mb-6 relative overflow-hidden group border border-white/5">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[40px] -mr-10 -mt-10" />
+                    <div className="relative z-10 flex flex-col items-center text-center">
+                        <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center mb-4 shadow-xl shadow-indigo-500/20 transform rotate-3 group-hover:rotate-0 transition-transform">
+                            <Palette size={28} className="text-amber-300" />
                         </div>
-                        <p className="text-base font-bold leading-relaxed">
-                            {strategy.imageHint}
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400 mb-2">
+                            Misión Visual
+                        </span>
+                        <h3 className="text-xl font-bold leading-tight text-white mb-2 italic">
+                            "{strategy.imageHint}"
+                        </h3>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed max-w-[200px]">
+                            Haz que tu imagen sea real, humana y atractiva
                         </p>
                     </div>
                 </div>
 
-                {/* Content Card */}
-                <div className="bg-white/80 backdrop-blur-xl rounded-[32px] border border-white/50 shadow-xl p-6 mb-6 relative overflow-hidden">
-                    <div className="flex justify-between items-center mb-4 relative z-10">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                            Tu Copy
-                        </span>
+                {/* Content Card (The "What to Copy") */}
+                <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl p-8 mb-8 relative overflow-hidden">
+                    <div className="flex justify-between items-center mb-6">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                Tu Copy Profesional
+                            </span>
+                        </div>
                         <button
                             onClick={handleCopyAll}
-                            className={`text-[10px] font-black uppercase px-4 py-2 rounded-full transition-all flex items-center gap-2 ${copiedAll ? 'bg-emerald-500 text-white' : 'bg-white/50 border border-white/40 text-slate-500 hover:bg-white animate-icon-pulse'
+                            className={`text-[10px] font-black uppercase px-6 py-2.5 rounded-full transition-all flex items-center gap-2 shadow-sm ${copiedAll
+                                ? 'bg-emerald-500 text-white animate-in zoom-in'
+                                : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white border border-indigo-100'
                                 }`}
                         >
                             {copiedAll ? <Check size={14} /> : <Copy size={14} />}
-                            {copiedAll ? '¡Copiado!' : 'Copiar Texto'}
+                            {copiedAll ? '¡Texto Copiado!' : 'Copiar Texto'}
                         </button>
                     </div>
 
-                    <div className="prose prose-sm max-w-none relative z-10">
+                    <div className="relative bg-slate-50/50 rounded-3xl p-6 border border-slate-100">
                         <ActionCard text={`${strategy.mainPost}\n\n${strategy.cta}`} hideCopy={true} />
                     </div>
                 </div>
 
                 {/* Dynamic Action Area */}
-                <div className="mt-8">
+                <div className="space-y-4">
                     {!isCompleted && !showFeedback && (
                         <button
                             onClick={handleComplete}
                             disabled={isCompleted}
-                            className="w-full py-5 rounded-[24px] font-black text-white shadow-xl transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-sm bg-indigo-600 hover:bg-indigo-700 hover:-translate-y-1 shadow-indigo-200"
+                            className="w-full py-6 rounded-[32px] font-black text-white shadow-2xl transition-all flex flex-col items-center justify-center gap-1 uppercase tracking-[0.2em] text-sm bg-indigo-600 hover:bg-indigo-700 hover:-translate-y-1 shadow-indigo-200 relative overflow-hidden group"
                         >
-                            <Megaphone size={20} /> Publicar y Ganar Puntos
+                            {/* Shimmer */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer-sweep duration-1000" />
+                            <div className="flex items-center gap-3 relative z-10 text-lg">
+                                <Rocket size={24} className="text-amber-400" /> ¡Publicar y Ganar Puntos!
+                            </div>
+                            <span className="text-[9px] opacity-70 normal-case font-bold tracking-widest relative z-10 uppercase transition-all group-hover:opacity-100">
+                                Súbelo a tus estados y reclama tu nivel
+                            </span>
                         </button>
                     )}
 
                     {showFeedback && !isCompleted && (
-                        <div className="bg-slate-900 p-6 rounded-[32px] text-white text-center animate-in zoom-in slide-in-from-bottom-2 shadow-xl ring-2 ring-indigo-400/20">
-                            <p className="font-bold mb-3 text-xl">🚀 ¡Acción Detectada!</p>
-                            <p className="text-sm text-slate-300 mb-6">¿Cuál fue el resultado de tu publicación?</p>
+                        <div className="bg-slate-900 p-8 rounded-[40px] text-white text-center animate-in zoom-in slide-in-from-bottom-2 shadow-2xl ring-4 ring-indigo-400/10">
+                            <Trophy size={48} className="mx-auto text-amber-400 mb-4 animate-bounce" />
+                            <p className="font-black mb-2 text-2xl tracking-tight">🚀 ¡Acción Detectada!</p>
+                            <p className="text-xs font-bold text-slate-400 mb-8 uppercase tracking-widest">¿Alguien ha reaccionado ya?</p>
                             <div className="flex gap-4">
                                 <button
                                     onClick={() => handleResult('later')}
-                                    className="flex-1 py-4 bg-slate-800 rounded-2xl hover:bg-slate-700 transition-colors font-black uppercase text-[10px] tracking-widest text-slate-400"
+                                    className="flex-1 py-5 bg-slate-800 rounded-3xl hover:bg-slate-700 transition-colors font-black uppercase text-[10px] tracking-widest text-slate-400 border border-white/5"
                                 >
-                                    👀 Visto / Nada
+                                    👀 Aún no hay aviso
                                 </button>
                                 <button
                                     onClick={() => handleResult('success')}
-                                    className="flex-1 py-4 bg-emerald-500 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 hover:scale-105 transition-all text-white flex items-center justify-center gap-2"
+                                    className="flex-1 py-5 bg-emerald-500 rounded-3xl font-black uppercase text-[11px] tracking-widest shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 hover:scale-105 transition-all text-white flex items-center justify-center gap-2"
                                 >
-                                    🔥 ¡Interesado!
+                                    🔥 ¡Hay Interés!
                                 </button>
                             </div>
                         </div>
                     )}
 
                     {isCompleted && (
-                        <div className="space-y-4 animate-in fade-in zoom-in duration-500">
-                            <div className="w-full py-6 rounded-[32px] bg-emerald-500 text-white font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 shadow-xl shadow-emerald-200">
-                                <CheckCircle2 size={24} /> ¡Día Completado!
+                        <div className="space-y-4 animate-in fade-in zoom-in duration-700">
+                            <div className="w-full py-8 rounded-[40px] bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-black uppercase tracking-[0.3em] text-md flex flex-col items-center justify-center gap-2 shadow-2xl shadow-emerald-200">
+                                <CheckCircle2 size={40} className="mb-2" />
+                                <span>¡Misión Cumplida!</span>
                             </div>
 
                             <button
                                 onClick={handleShareResult}
-                                className="w-full py-4 rounded-[20px] bg-slate-100 text-slate-600 font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors"
+                                className="w-full py-5 rounded-[24px] bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 hover:bg-black transition-all active:scale-95 shadow-xl border border-white/10"
                             >
-                                <Share2 size={16} /> Compartir Logro con el Equipo
+                                <Share2 size={18} className="text-indigo-400" /> Inspirar a mi Equipo con el Logro
                             </button>
                         </div>
                     )}
                 </div>
 
-                <button onClick={() => { if (onNavigate) onNavigate('HOME', true); }} className="w-full text-center mt-6 text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600">
-                    Volver al Inicio
-                </button>
+                <div className="mt-12 text-center">
+                    <button onClick={() => { if (onNavigate) onNavigate('HOME', true); }} className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] hover:text-indigo-600 transition-all border-b border-transparent hover:border-indigo-600 pb-1">
+                        Finalizar Sesión
+                    </button>
+                </div>
 
                 {/* Share Achievement Modal */}
                 {showShareModal && (

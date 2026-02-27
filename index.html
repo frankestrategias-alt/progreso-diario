@@ -83,8 +83,7 @@
     </div>
 
     <script>
-        // SISTEMA DE MONITOREO Y REPARACIÓN MAESTRA
-        const NUKE_ID = '1.7.2-ultra'; // Force cache clear for Chrome Blank Screen fix
+        // SISTEMA DE MONITOREO MAESTRO
 
         // WATCHDOG: Si en 4 segundos no hay contenido en #root, mostrar diagnóstico
         setTimeout(() => {
@@ -92,7 +91,7 @@
             if (root && root.innerHTML === "") {
                 console.error("🚨 Watchdog: App failed to load in 4s. Showing diagnostic.");
                 document.getElementById('critical-diagnostic').style.display = 'block';
-                document.getElementById('diagnostic-log').textContent += '⚠️ Tiempo de carga excedido (Watchdog)\nPosible bloqueo por Service Worker antiguo.\n';
+                document.getElementById('diagnostic-log').textContent += '⚠️ Tiempo de carga excedido (Watchdog)\nPosible bloqueo de red o error de sintaxis.\n';
             }
         }, 4000);
 
@@ -112,39 +111,6 @@
                 document.getElementById('diagnostic-log').textContent += '⚠️ Fallo crítico en script: ' + (e.target.src || 'anónimo') + '\n';
             }
         }, true);
-
-        if (localStorage.getItem('nuke_v') !== NUKE_ID) {
-            console.warn('💣 Iniciando Limpieza Atómica...', NUKE_ID);
-
-            // 1. Limpiar Service Workers
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(regs => {
-                    regs.forEach(reg => reg.unregister());
-                });
-            }
-
-            // 2. Limpiar Caches
-            if ('caches' in window) {
-                caches.keys().then(names => {
-                    names.forEach(name => caches.delete(name));
-                });
-            }
-
-            // 3. Limpiar Bases de Datos (Protegido para navegadores antiguos/Safari)
-            if ('indexedDB' in window && typeof indexedDB.databases === 'function') {
-                indexedDB.databases().then(dbs => {
-                    dbs.forEach(db => {
-                        if (db.name) indexedDB.deleteDatabase(db.name);
-                    });
-                }).catch(err => console.log('IDB Cleanup skip:', err));
-            }
-
-            // 4. Marcar y reiniciar
-            localStorage.setItem('nuke_v', NUKE_ID);
-            setTimeout(() => {
-                window.location.replace(window.location.origin + window.location.pathname + '?r=' + Date.now());
-            }, 800);
-        }
     </script>
 
     <div id="root"></div>

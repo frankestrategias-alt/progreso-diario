@@ -233,7 +233,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onRecordAction, onNavi
               </div>
             </div>
           )}
-          <p className="text-[10px] text-center text-slate-400 mt-6 font-medium uppercase tracking-widest opacity-60">
+          <p className="text-[10px] text-center text-slate-500 mt-6 font-bold uppercase tracking-widest">
             El objetivo es abrir la puerta, no tirar la pared.
           </p>
         </div>

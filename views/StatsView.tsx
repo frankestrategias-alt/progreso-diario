@@ -121,7 +121,13 @@ export const StatsView: React.FC<StatsViewProps> = ({ onBack }) => {
                         }
                     } else {
                         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
-                        window.open(whatsappUrl, '_blank');
+                        const link = document.createElement('a');
+                        link.href = whatsappUrl;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
                     }
                 }}
                 className="w-full py-4 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-widest shadow-lg shadow-indigo-100 active:scale-95 transition-all flex items-center justify-center gap-2"

@@ -113,12 +113,14 @@ export const MarketplaceView: React.FC<MarketplaceViewProps> = ({ setViewState }
                                 </p>
 
                                 <div className="flex items-center justify-end">
-                                    <button
-                                        onClick={() => window.open(tool.url, '_blank')}
+                                    <a
+                                        href={tool.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                         className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-700 text-white text-[10px] font-black uppercase tracking-widest px-5 py-3 rounded-xl hover:from-indigo-500 hover:to-violet-600 transition-all shadow-md shadow-indigo-200/50 active:scale-95"
                                     >
                                         {tool.price} <ExternalLink size={12} />
-                                    </button>
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -145,15 +147,17 @@ export const MarketplaceView: React.FC<MarketplaceViewProps> = ({ setViewState }
                         Únete a nuestro <span className="text-indigo-200 font-bold">Marketplace</span> y llega a miles de networkers profesionales.
                     </p>
 
-                    <button
-                        onClick={() => window.open('https://wa.me/573134140978?text=' + encodeURIComponent('Hola Frank, me interesa integrar mi herramienta en el Marketplace de Networker Pro 🚀'), '_blank')}
+                    <a
+                        href={'https://wa.me/573134140978?text=' + encodeURIComponent('Hola Frank, me interesa integrar mi herramienta en el Marketplace de Networker Pro 🚀')}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-violet-700 text-white w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-indigo-900/40 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
                     >
                         {/* Shimmer Effect */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/support:animate-[shimmer_2s_infinite]"></div>
 
                         Contactar Soporte <ArrowRight size={14} />
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>

@@ -37,9 +37,8 @@ export const ObjectionView: React.FC<ObjectionViewProps> = () => {
     const contextChips = [
         "Duda del producto",
         "Miedo al fracaso",
-        "Mala experiencia",
         "Falta de confianza",
-        "Escepticismo total"
+        "Mala experiencia"
     ];
 
     const handleObjectionSubmit = async (obj: string) => {
@@ -139,7 +138,7 @@ export const ObjectionView: React.FC<ObjectionViewProps> = () => {
                                         <p className="text-[10px] font-black text-slate-400 underline decoration-amber-500/30 underline-offset-4 uppercase tracking-[0.15em] px-1">
                                             Añadir contexto rápido:
                                         </p>
-                                        <div className="flex flex-wrap gap-2">
+                                        <div className="flex flex-wrap gap-2 justify-center">
                                             {contextChips.map(chip => (
                                                 <button
                                                     key={chip}

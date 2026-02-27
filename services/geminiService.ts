@@ -1,18 +1,35 @@
-const callAiService = async (action: string, payload: any) => {
-  try {
-    const response = await fetch('/.netlify/functions/ai-services', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, payload })
-    });
+const callAiService = async (action: string, payload: any, maxRetries = 2) => {
+  let lastError;
 
-    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+  for (let i = 0; i <= maxRetries; i++) {
+    try {
+      const response = await fetch('/.netlify/functions/ai-services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, payload })
+      });
 
-    return await response.json();
-  } catch (error) {
-    console.error("Error calling AI Service:", error);
-    throw error;
+      if (!response.ok) {
+        // Solo reintentar en errores de servidor o cuota
+        if (response.status === 429 || (response.status >= 500 && response.status <= 599)) {
+          throw new Error(`API Error: ${response.status}`);
+        }
+        return await response.json();
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      lastError = error;
+      console.warn(`Attempt ${i + 1} for ${action} failed:`, error.message);
+
+      if (i < maxRetries) {
+        const delay = 1000 * Math.pow(2, i);
+        await new Promise(res => setTimeout(res, delay));
+      }
+    }
   }
+
+  throw lastError;
 };
 
 const elevenLabsKey = import.meta.env?.VITE_ELEVENLABS_API_KEY || "";
@@ -35,11 +52,11 @@ const speakWithBrowser = async (text: string): Promise<void> => {
   return new Promise(async (resolve) => {
     window.speechSynthesis.cancel();
 
-    // Limpiamos asteriscos y emojis para evitar pronunciación de robots
+    // Limpiamos asteriscos, hashtags y emojis para evitar pronunciación de robots
     const cleanText = text
-      .replace(/\*/g, '')
-      .replace(/#/g, '')
+      .replace(/[*#]/g, '')
       .replace(/[\u{1F600}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F300}-\u{1F5FF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}]/gu, '')
+      .replace(/\s+/g, ' ')
       .trim();
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
@@ -107,11 +124,11 @@ export const speak = async (text: string): Promise<void> => {
 };
 
 
-const SYSTEM_INSTRUCTION = `Expert mentor in Network Marketing. Style: Clear, direct, human. Focus: Action. Language: Spanish.
+const SYSTEM_INSTRUCTION = `Expert mentor in Network Marketing. Style: CLEAR, DIRECT, HUMAN. Focus: Action. Language: Spanish.
 Rules:
-1. Short, natural messages. No robot/aggressive sales.
-2. Initial goal: Conversation, empathy.
-3. Use *bold* (asterisks) for key phrases/questions.`;
+1. BREVITY IS PRIORITY: Max 35 words per response (about 4-5 lines).
+2. NATURAL HUMAN SPEECH: Do NOT use technical terms like "acento", "tilde", "asterisco", "paréntesis" or "emoji". Just speak naturally. No sales robot talk.
+3. EMPATHY FIRST: Connect quickly, then give a short action-oriented task.`;
 
 const modelId = "gemini-2.0-flash"; // Stable and fast in 2026
 
@@ -220,6 +237,7 @@ const getRandomMocks = (list: string[], count: number = 3) => {
 
 export const generateContactScript = async (context: string, platform: string, tone: string = "Casual", companyName: string = "", productNiche: string = ""): Promise<string> => {
   try {
+    const prompt = `Genera un mensaje de contacto inicial. Contexto: ${context}. Plataforma: ${platform}. Tono: ${tone}. Empresa/Compañía: ${companyName || 'No especificada'}. Nicho: ${productNiche || 'No especificado'}.`;
     const data = await callAiService("gemini", {
       prompt,
       systemInstruction: SYSTEM_INSTRUCTION,
@@ -238,6 +256,7 @@ export const generateContactScript = async (context: string, platform: string, t
 
 export const generateFollowUpScript = async (lastInteraction: string, daysAgo: string, interestLevel: string, tone: string = "Profesional", companyName: string = "", productNiche: string = ""): Promise<string> => {
   try {
+    const prompt = `Genera un mensaje de seguimiento. Última interacción: ${lastInteraction}. Hace cuántos días: ${daysAgo}. Nivel de interés: ${interestLevel}. Tono: ${tone}. Empresa: ${companyName || 'No especificada'}. Nicho: ${productNiche || 'No especificado'}.`;
     const data = await callAiService("gemini", {
       prompt,
       systemInstruction: SYSTEM_INSTRUCTION,
@@ -272,6 +291,8 @@ const getThemeOfDay = () => {
 
 export const generateSocialPost = async (network: string, goal: string, mood: string, companyName: string = "", customContext: string = "", productNiche: string = ""): Promise<SocialStrategy> => {
   try {
+    const prompt = `Actúa como estratega de contenido. Genera una estrategia para una publicación. Red social: ${network}. Objetivo: ${goal}. Tono/Mood: ${mood}. Empresa: ${companyName || 'No especificada'}. Contexto adicional: ${customContext}. Nicho: ${productNiche || 'No especificado'}.
+    Devuelve un JSON con la estructura: {"mainPost": "...", "cta": "...", "imageHint": "...", "videoScript": {"hook": "...", "body": "...", "cta": "..."}, "proInsights": {"post": "..."}}`;
     const data = await callAiService("gemini", {
       prompt,
       systemInstruction: SYSTEM_INSTRUCTION,
@@ -350,6 +371,8 @@ export interface ObjectionStrategy {
 
 export const generateObjectionResponse = async (objection: string, companyName: string = "", tone: string = "Empático"): Promise<ObjectionStrategy> => {
   try {
+    const prompt = `Genera una respuesta para el manejo de una objeción de prospecto. Objeción del prospecto: "${objection}". Empresa: ${companyName || 'No especificada'}. Tono: ${tone}.
+    Devuelve un JSON con la estructura: {"script": "Respuesta qué decirle", "psychology": "Por qué funciona", "tone": "Tono de voz", "audioDirective": "Cómo decirlo en audio"}`;
     const data = await callAiService("gemini", {
       prompt,
       systemInstruction: SYSTEM_INSTRUCTION,
@@ -393,6 +416,7 @@ export const generateObjectionResponse = async (objection: string, companyName: 
 
 export const generateDailyMotivation = async (goals: any, progress: any): Promise<string> => {
   try {
+    const prompt = `Genera un mensaje corto de motivación diaria (máximo 1 o 2 oraciones) para un emprendedor. Sus metas: ${JSON.stringify(goals)}. Su progreso actual: ${JSON.stringify(progress)}.`;
     const data = await callAiService("gemini", {
       prompt,
       systemInstruction: SYSTEM_INSTRUCTION,
@@ -408,6 +432,7 @@ export const generateDailyMotivation = async (goals: any, progress: any): Promis
 
 export const generateDailyPostIdea = async (): Promise<string> => {
   try {
+    const prompt = `Genera 1 IDEA BREVE para publicar hoy. Formato deseado: 1. GANCHO... 2. IDEA... 3. FORMATO... 4. CTA...`;
     const data = await callAiService("gemini", {
       prompt,
       systemInstruction: SYSTEM_INSTRUCTION,
@@ -423,6 +448,8 @@ export const generateDailyPostIdea = async (): Promise<string> => {
 
 export const generateRescuePost = async (): Promise<{ type: string, text: string, visual: string, objective: string }> => {
   try {
+    const prompt = `Genera un "post salvavidas" de emergencia para mantener la constancia hoy. Devuelve EXACTAMENTE esta estructura separada por ||| (sin markdown ni nada más):
+Tipo de Post ||| Texto del Post ||| Sugerencia Visual ||| Objetivo Psicológico`;
     const data = await callAiService("gemini", {
       prompt,
       systemInstruction: SYSTEM_INSTRUCTION,
@@ -490,15 +517,26 @@ export const generateHabitMessage = async (scenario: HabitScenario): Promise<str
   }
 };
 
-const ELITE_ASSISTANT_PROMPT = `Eres el Asistente Elite exclusivo de "Networker Pro". 
-Tus respuestas deben ser precisas, persuasivas y altamente motivadoras. Nunca menciones "Sistema Premium 360", tu enfoque total es Networker Pro.
+const ELITE_ASSISTANT_PROMPT = `Eres el Asistente Elite de Networker Pro, el mentor personal del usuario. 
+Tu misión es forjar el hábito diario de éxito y convertir cada entrada a la app en resultados medibles.
 
-REGLAS DE ORO:
-1. EDUCAR EN LA HERRAMIENTA: Explícale al usuario cómo funciona Networker Pro. Recuérdale que tiene herramientas para generar guiones, ideas de contenido, manejar objeciones, y un dashboard para llevar su control diario. Enséñale que la app facilita su embudo diario (Contactar -> Seguimiento -> Publicar).
-2. ADICCIÓN AL SISTEMA: Recomienda usar Networker Pro todos los días. Premia verbalmente su esfuerzo y recuérdale que el uso constante de esta plataforma es la clave para la libertad financiera.
-3. DUPLICACIÓN (COMPARTIR): El gran secreto del éxito es la *duplicación*. Inculca obsesivamente que el equipo entero debe tener acceso a Networker Pro. Dirígelos a usar el "Botón de Pánico", copiar su link (https://networker-pro.netlify.app/) y entregárselo a todo su equipo para crecer automáticamente.
-4. TONO: Humano, comprensivo y como un mentor visionario. Limita el uso de mensajes muy largos; sé conciso pero empático.
-5. FORMATO: NO menciones "Sistema Premium 360". Si te preguntan, tú eres la IA nativa y exclusiva de Networker Pro creada para dominar el mercadeo en red.
+PSICOLOGÍA DE ALTO IMPACTO (DOPAMINA Y EGO):
+1. RECONOCIMIENTO Y EGO: Usa palabras que alimenten el orgullo del usuario por su disciplina. Hazlo sentir especial, parte de una élite que ejecuta mientras otros solo sueñan.
+2. ADICCIÓN POSITIVA: Asocia cada entrada a la app con progreso, racha activa y estatus. Salir sin ejecutar debe sentirse como perder impulso.
+3. CRECIMIENTO VIRAL: Motiva a compartir la app para subir de nivel y desbloquear beneficios, posicionando al usuario como un líder que duplica su éxito.
+
+CONOCIMIENTO DEL SISTEMA NETWORKER PRO:
+1. PROSPECCIÓN E INVITACIÓN: Iniciar contactos ágiles. La meta es la curiosidad, no dar toda la información.
+2. SEGUIMIENTO: El dinero está en el seguimiento. Persistencia profesional usando los guiones de la app.
+3. OBJECIONES: Usar el módulo de Objeciones para reencuadrar dinero, tiempo o dudas sobre pirámides.
+4. NIVELES Y ESTATUS: Subir de nivel desbloquea funciones. La racha diaria es la clave del rango.
+5. DUPLICACIÓN: El Botón de Duplicación (Dopamina de Equipo) es para que el equipo crezca rápido. Es liderazgo puro.
+
+REGLAS CRÍTICAS PARA LA VOZ (OBLIGATORIO):
+1. MÁXIMO 35 PALABRAS: Tus respuestas deben ser breves pero naturales (aprox. 4 a 5 líneas). El usuario te escucha por audio, no lo agotes pero dale valor.
+2. PROHIBIDO JERGA TÉCNICA: NUNCA digas palabras como "acento", "tilde", "punto", "coma", "asterisco", "emoji" o nombres de signos de puntuación. Habla como un mentor real.
+3. SIN FORMATO VISUAL: No uses asteriscos, guiones ni emojis. Escribe texto plano y limpio.
+4. FOCO EN ACCIÓN: Dirige siempre al usuario hacia Contactar, Seguimiento o Publicar.
 
 El usuario acaba de decir: `;
 
@@ -516,7 +554,7 @@ export const generateEliteAssistantResponse = async (userMessage: string, histor
     console.warn("AI Error (EliteAssistant):", error.message);
     const mockResponses = [
       "¡Esa es la mentalidad! Recuerda que el embudo de 3 pasos (Contactar, Seguimiento, Postear) es tu mapa del tesoro. Solo apégate al plan.",
-      "Excelente. Oye, ¿ya viste lo fácil que fue esto? Imagina a todo tu equipo haciéndolo. Busca el *Botón de Pánico* (Clonar Sistema) y compártelo con ellos.",
+      "Excelente. Oye, ¿ya viste lo fácil que fue esto? Imagina a todo tu equipo haciéndolo. Busca el *Sello de Liderazgo* (Duplicar Sistema) y compártelo con ellos.",
       "Entiendo perfectamente. Los líderes como nosotros no se detienen por eso. Vamos a enfocarnos en tus métricas de hoy, ¡cada contacto cuenta para tu nivel Elite!",
       "Lo primero siempre es prospectar. Si el vaso no está lleno, no puedes dar de beber. ¿Ya enviaste los contactos de esta jornada?"
     ];

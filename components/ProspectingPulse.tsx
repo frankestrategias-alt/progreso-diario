@@ -55,7 +55,7 @@ export const ProspectingPulse: React.FC = () => {
 
     return (
         <div className="w-full px-2">
-            <div className="bg-white/40 backdrop-blur-md border border-white/60 rounded-full py-2.5 px-4 flex items-center justify-center gap-3 shadow-sm transition-all duration-500 select-none overflow-hidden h-[42px]">
+            <div className="bg-white border-2 border-slate-300 rounded-full py-2.5 px-4 flex items-center justify-center gap-3 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] transition-all duration-500 select-none overflow-hidden h-[46px]">
                 <div className={`transition-all duration-500 flex items-center gap-3 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                     <div className={`${current.color} bg-white/50 p-1.5 rounded-full shadow-inner`}>
                         <Icon size={14} fill="currentColor" className={currentIndex % 2 === 0 ? 'animate-pulse' : ''} />

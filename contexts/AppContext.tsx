@@ -5,9 +5,11 @@ interface AppContextType {
     goals: UserGoals;
     progress: DailyProgress;
     gamification: GamificationState;
+    theme: 'light' | 'dark';
     setGoals: React.Dispatch<React.SetStateAction<UserGoals>>;
     setProgress: React.Dispatch<React.SetStateAction<DailyProgress>>;
     setGamification: React.Dispatch<React.SetStateAction<GamificationState>>;
+    setTheme: (theme: 'light' | 'dark') => void;
     addPoints: (amount: number) => void;
 }
 
@@ -46,6 +48,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     });
 
+    const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
+        const saved = localStorage.getItem('appTheme');
+        if (saved === 'light' || saved === 'dark') {
+            return saved;
+        }
+        return 'light';
+    });
+
+    useEffect(() => {
+        const root = window.document.documentElement;
+        root.classList.remove('light', 'dark');
+        root.classList.add(theme);
+        localStorage.setItem('appTheme', theme);
+    }, [theme]);
+
+    const setTheme = (newTheme: 'light' | 'dark') => {
+        setThemeState(newTheme);
+    };
+
     useEffect(() => {
         localStorage.setItem('userGoals', JSON.stringify(goals));
     }, [goals]);
@@ -70,6 +91,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             goals, setGoals,
             progress, setProgress,
             gamification, setGamification,
+            theme, setTheme,
             addPoints
         }}>
             {children}

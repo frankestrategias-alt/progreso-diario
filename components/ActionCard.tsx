@@ -119,7 +119,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({ text, onCopy, hideCopy =
           <>
             <button
               onClick={toggleEdit}
-              className="p-2 rounded-full text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+              className="p-2 rounded-full text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
               title="Editar texto"
             >
               <Pencil size={16} />
@@ -129,7 +129,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({ text, onCopy, hideCopy =
                 onClick={handleCopy}
                 className={`p-2 rounded-full transition-all duration-300 ${copied
                   ? 'bg-emerald-500 text-white scale-110 rotate-12 shadow-lg shadow-emerald-200'
-                  : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50 animate-icon-pulse'
+                  : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50 animate-icon-pulse'
                   }`}
                 title="Copiar texto"
               >

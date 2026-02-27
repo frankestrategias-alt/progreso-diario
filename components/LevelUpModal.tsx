@@ -24,9 +24,15 @@ export const LevelUpModal: React.FC<LevelUpModalProps> = ({ level, title, onClos
                 console.log('Error sharing', error);
             }
         } else {
-            // Fallback to WhatsApp
+            // Fallback to WhatsApp (Nativo para evitar bloqueos)
             const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
-            window.open(whatsappUrl, '_blank');
+            const link = document.createElement('a');
+            link.href = whatsappUrl;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
     };
 

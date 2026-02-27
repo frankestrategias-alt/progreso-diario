@@ -5,19 +5,24 @@ import { useAppContext } from '../contexts/AppContext';
 import { MISSIONS, LEVELS } from '../types';
 
 export const playSound = (type: 'action' | 'success' | 'levelUp') => {
-    const sounds = {
-        action: 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3', // Subtle Click
-        success: 'https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3', // Sparkle
-        levelUp: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3', // Fanfare
-    };
-    const audio = new Audio(sounds[type]);
-    audio.volume = 0.15;
-    audio.play().catch(() => { });
+    try {
+        const sounds = {
+            action: 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3', // Subtle Click
+            success: 'https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3', // Sparkle
+            levelUp: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3', // Fanfare
+        };
+        const audio = new Audio(sounds[type]);
+        audio.volume = 0.15;
+        audio.play().catch(() => { /* Silently fail if blocked by browser policy */ });
+    } catch (e) {
+        console.warn('Audio playback failed', e);
+    }
 };
 
 export const useAppEngine = () => {
     const { goals, progress, setProgress, gamification, setGamification } = useAppContext();
     const [showLevelUp, setShowLevelUp] = useState<{ level: number, title: string } | null>(null);
+    const [showProactiveSales, setShowProactiveSales] = useState<{ trigger: string } | null>(null);
 
     // Check Daily Reset & Streak
     useEffect(() => {
@@ -90,6 +95,13 @@ export const useAppEngine = () => {
                 setShowLevelUp({ level: newLevel, title: newTitle });
                 playSound('levelUp');
                 triggerHaptic('success');
+
+                // Hack 2: Gatillos de Ventas basados en logro (Nivel)
+                if ((newLevel === 2 || newLevel === 5 || newLevel === 10) && !localStorage.getItem(`sales_trigger_v2_lvl_${newLevel}`)) {
+                    localStorage.setItem(`sales_trigger_v2_lvl_${newLevel}`, 'true');
+                    // Mostrar 4 segundos después, para no apagar la dopamina del Level Up
+                    setTimeout(() => setShowProactiveSales({ trigger: `el Nivel ${newLevel} de Consistencia` }), 4000);
+                }
             } else {
                 playSound('success');
                 triggerHaptic('light');
@@ -124,11 +136,13 @@ export const useAppEngine = () => {
                 };
             });
 
-            confetti({
-                particleCount: 150,
-                spread: 100,
-                origin: { y: 0.6 }
-            });
+            try {
+                confetti({
+                    particleCount: 150,
+                    spread: 100,
+                    origin: { y: 0.6 }
+                });
+            } catch (e) { console.warn('Confetti failed', e); }
         }
     };
 
@@ -143,12 +157,14 @@ export const useAppEngine = () => {
 
             // Trigger confetti if goal is reached
             if (newContacts === goals.dailyContacts) {
-                confetti({
-                    particleCount: 150,
-                    spread: 70,
-                    origin: { y: 0.6 },
-                    colors: ['#10b981', '#3b82f6', '#f59e0b']
-                });
+                try {
+                    confetti({
+                        particleCount: 150,
+                        spread: 70,
+                        origin: { y: 0.6 },
+                        colors: ['#10b981', '#3b82f6', '#f59e0b']
+                    });
+                } catch (e) { console.warn('Confetti failed', e); }
             }
 
             return { ...prev, contactsMade: newContacts, history: newHistory };
@@ -166,12 +182,14 @@ export const useAppEngine = () => {
 
             // Trigger confetti if goal is reached
             if (newFollowUps === goals.dailyFollowUps) {
-                confetti({
-                    particleCount: 150,
-                    spread: 70,
-                    origin: { y: 0.6 },
-                    colors: ['#3b82f6', '#8b5cf6', '#ec4899']
-                });
+                try {
+                    confetti({
+                        particleCount: 150,
+                        spread: 70,
+                        origin: { y: 0.6 },
+                        colors: ['#3b82f6', '#8b5cf6', '#ec4899']
+                    });
+                } catch (e) { console.warn('Confetti failed', e); }
             }
 
             return { ...prev, followUpsMade: newFollowUps, history: newHistory };
@@ -187,17 +205,21 @@ export const useAppEngine = () => {
         addPoints(isRescue ? 50 : 20); // +20 Puntos for normal post, +50 for rescue
 
         // Trigger confetti
-        confetti({
-            particleCount: 200,
-            spread: 100,
-            origin: { y: 0.6 },
-            colors: ['#8b5cf6', '#ec4899', '#f59e0b']
-        });
+        try {
+            confetti({
+                particleCount: 200,
+                spread: 100,
+                origin: { y: 0.6 },
+                colors: ['#8b5cf6', '#ec4899', '#f59e0b']
+            });
+        } catch (e) { console.warn('Confetti failed', e); }
     };
 
     return {
         showLevelUp,
         setShowLevelUp,
+        showProactiveSales,
+        setShowProactiveSales,
         addPoints,
         completeMission,
         handleRecordContact,
