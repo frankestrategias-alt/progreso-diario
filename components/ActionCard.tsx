@@ -33,13 +33,16 @@ export const ActionCard: React.FC<ActionCardProps> = ({ text, onCopy, hideCopy =
   const handleCopy = () => {
     if (onCopy) onCopy();
 
+    // Inyección Viral B2B: Marca de agua
+    const textToCopy = `${currentText.trim()}\n\n(Generado en 3s con la IA de Networker Pro. Úsalo gratis: ${window.location.origin})`;
+
     // Safety check for navigator.clipboard
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(currentText);
+      navigator.clipboard.writeText(textToCopy);
     } else {
       // Fallback for older browsers or insecure contexts
       const textArea = document.createElement("textarea");
-      textArea.value = currentText;
+      textArea.value = textToCopy;
       document.body.appendChild(textArea);
       textArea.select();
       try {

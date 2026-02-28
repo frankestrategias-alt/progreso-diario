@@ -153,6 +153,9 @@ export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, on
 
         if (strategy.imageHint) fullText += `\n\n📸 MISIÓN VISUAL:\n${strategy.imageHint}`;
 
+        // Inyección Viral B2B: Marca de agua
+        fullText += `\n\n(Generado en 3s con la IA de Networker Pro. Úsalo gratis: ${window.location.origin})`;
+
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(fullText);
         } else {

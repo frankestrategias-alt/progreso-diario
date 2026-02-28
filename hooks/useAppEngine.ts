@@ -24,6 +24,21 @@ export const useAppEngine = () => {
     const [showLevelUp, setShowLevelUp] = useState<{ level: number, title: string } | null>(null);
     const [showProactiveSales, setShowProactiveSales] = useState<{ trigger: string } | null>(null);
 
+    // Hack 4: Cross-Selling por Frustración de Prospección
+    useEffect(() => {
+        // Si tiene Racha Alta (+5 días) pero 0 contactos diarios = Esfuerzo sin resultados (Frustración B2B)
+        if (gamification.streak >= 5 && progress.contactsMade === 0) {
+            if (!localStorage.getItem('sales_trigger_v2_frustration')) {
+                // Disparar en el minuto de "ansiedad" (15 segundos tras abrir el Dashboard y no saber a quién hablarle)
+                const timer = setTimeout(() => {
+                    localStorage.setItem('sales_trigger_v2_frustration', 'true');
+                    setShowProactiveSales({ trigger: `tu esfuerzo (Racha de ${gamification.streak} días) que no está dando resultados hoy` });
+                }, 15000);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [gamification.streak, progress.contactsMade]);
+
     // Check Daily Reset & Streak
     useEffect(() => {
         const today = new Date().toISOString().split('T')[0];
