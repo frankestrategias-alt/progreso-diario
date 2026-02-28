@@ -81,27 +81,8 @@ export const handler = async (event) => {
         if (action === "tts") {
             const textToSpeak = payload.text;
 
-            // 1. ElevenLabs
-            if (ELEVENLABS_API_KEY) {
-                const voiceId = "pNInz6obpgDQGcFmaJgB"; // Adam
-                const elRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-                    method: 'POST',
-                    headers: { 'xi-api-key': ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        text: textToSpeak,
-                        model_id: "eleven_multilingual_v2",
-                        voice_settings: { stability: 0.5, similarity_boost: 0.75 }
-                    })
-                });
-
-                if (elRes.ok) {
-                    const arrayBuffer = await elRes.arrayBuffer();
-                    const base64 = Buffer.from(arrayBuffer).toString('base64');
-                    return { statusCode: 200, headers: { "Access-Control-Allow-Origin": "*" }, body: JSON.stringify({ audioContent: base64 }) };
-                }
-            }
-
-
+            // 1. (REMOVIDO: ElevenLabs causaba Crash Silencioso).
+            // Usamos directamente Google Cloud TTS.
             // 2. Google Cloud
             if (GOOGLE_CLOUD_KEY) {
                 const response = await fetch(

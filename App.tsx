@@ -56,7 +56,7 @@ function App() {
   // DUPLICATION PROTOCOL (Extracted to hook)
   const { incomingGoals, setIncomingGoals } = useDuplicationProtocol();
   // FORCE CACHE CLEANING (VERSIONING) & URL Cleanup
-  const APP_VERSION = '1.7.3-ultra'; // Super Nuke - Chrome fix
+  const APP_VERSION = '1.7.4-ai-fix'; // Super Nuke - Chrome fix
   useEffect(() => {
     const savedVersion = localStorage.getItem('appVersion');
     if (savedVersion && savedVersion !== APP_VERSION) {
