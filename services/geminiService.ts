@@ -105,7 +105,7 @@ export const speak = async (text: string): Promise<void> => {
       .trim();
 
     const data = await callAiService("tts", { text: cleanText });
-    if (!data.audioContent) throw new Error("No audio content from Google TTS");
+    if (!data.audioContent) throw new Error("No audio content from premium TTS");
 
     const audioUrl = "data:audio/mp3;base64," + data.audioContent;
 
@@ -118,8 +118,31 @@ export const speak = async (text: string): Promise<void> => {
       globalAudio!.play().catch(reject);
     });
   } catch (error) {
-    console.warn("Google TTS failed, using Browser Speech:", error);
-    await speakWithBrowser(text);
+    console.warn("Premium TTS failed or missing. Using Google Translate Neural Voice...", error);
+    try {
+      const cleanText = text
+        .replace(/[*#_`]/g, '')
+        .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+        .replace(/[\u{2600}-\u{27BF}]/gu, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      // Maximum 200 characters per request for this endpoint (sufficient for our 35-word limit rule)
+      const chunk = cleanText.substring(0, 199);
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=${encodeURIComponent(chunk)}`;
+
+      if (!globalAudio) globalAudio = new Audio();
+      globalAudio.src = url;
+
+      await new Promise<void>((resolve, reject) => {
+        globalAudio!.onended = () => resolve();
+        globalAudio!.onerror = () => reject(new Error("Translate TTS Error"));
+        globalAudio!.play().catch(reject);
+      });
+    } catch (translateError) {
+      console.warn("Translate TTS failed, falling back to Browser Speech Synthesis");
+      await speakWithBrowser(text);
+    }
   }
 };
 
@@ -244,13 +267,13 @@ export const generateContactScript = async (context: string, platform: string, t
       temperature: 0.7,
     });
 
-    return data.text || getRandomMocks(MOCK_RESPONSES.contact, 3);
+    return data.text || "Mi servidor está experimentando un poco de latencia. Por favor, intenta crear tu guión de nuevo en unos segundos.";
   } catch (error: any) {
     console.warn("AI Error (Contact):", error.message);
     if (error.message?.includes("429")) {
       console.error("Quota exceeded - Consider upgrading billing tier.");
     }
-    return getRandomMocks(MOCK_RESPONSES.contact, 3);
+    return "Mi servidor de IA está temporalmente saturado. Por favor, danos un minuto y vuelve a intentar.";
   }
 };
 
@@ -263,10 +286,10 @@ export const generateFollowUpScript = async (lastInteraction: string, daysAgo: s
       temperature: 0.7,
     });
 
-    return data.text || getRandomMocks(MOCK_RESPONSES.followUp, 3);
+    return data.text || "La inteligencia artificial está tardando en responder. Intenta recargar tu solicitud de seguimiento en un par de segundos.";
   } catch (error: any) {
     console.warn("AI Error (FollowUp):", error.message);
-    return getRandomMocks(MOCK_RESPONSES.followUp, 3);
+    return "La red está experimentando alta demanda. Regresa en un minuto e intenta tu seguimiento nuevamente.";
   }
 };
 
@@ -306,59 +329,13 @@ export const generateSocialPost = async (network: string, goal: string, mood: st
 
   } catch (error: any) {
     console.warn("AI Error (SocialPost):", error.message);
-    // Fallback library to ensure the app never feels repetitive/stuck
-    const fallbacks = [
-      {
-        mainPost: "Hoy elegí que *la visión supere a la duda*. No se trata de dónde estás, sino de a dónde vas. ¿Quién más está en modo construcción?",
-        cta: "Escribe 'VISIÓN' para conectar.",
-        imageHint: `MISIÓN VISUAL: Debes crear una FOTO de estilo de vida sosteniendo un café frente a tu laptop y LUEGO SUBIRLO a tu ${network === 'WhatsApp' ? 'Estados de WhatsApp' : network}`,
-        proInsights: { post: "RAZÓN PSICOLÓGICA: La vulnerabilidad mezclada con visión genera confianza y autoridad inmediata." }
-      },
-      {
-        mainPost: "Muchos buscan el 'momento perfecto', yo busco el *momento de decidir*. El éxito es una suma de decisiones diarias.",
-        cta: "Dale ❤️ si estás de acuerdo.",
-        imageHint: `MISIÓN VISUAL: Debes crear un VIDEO de 5 segundos de tus pies caminando y LUEGO SUBIRLO a tu ${network === 'WhatsApp' ? 'Estados de WhatsApp' : network}`,
-        proInsights: { post: "RAZÓN PSICOLÓGICA: El movimiento físico en video simboliza progreso y atrae la vista." }
-      },
-      {
-        mainPost: "Si pudieras cambiar una sola cosa de tu rutina hoy para acercarte a tus sueños, ¿qué sería? Yo elegí *la disciplina sobre la motivación*.",
-        cta: "Comenta tu cambio abajo 👇",
-        imageHint: `MISIÓN VISUAL: Debes crear una FOTO de detalle de un libro abierto con luz natural y LUEGO SUBIRLO a tu ${network === 'WhatsApp' ? 'Estados de WhatsApp' : network}`,
-        proInsights: { post: "RAZÓN PSICOLÓGICA: Los planos cerrados generan curiosidad y pausa el scroll." }
-      },
-      {
-        mainPost: "El secreto del Network Marketing no es encontrar a la persona correcta, sino *convertirte en la persona correcta*. Seguimos creciendo.",
-        cta: "Comparte si te resuena.",
-        imageHint: `MISIÓN VISUAL: Debes crear una FOTO capturando un momento de trabajo 'detrás de cámaras' y LUEGO SUBIRLO a tu ${network === 'WhatsApp' ? 'Estados de WhatsApp' : network}`,
-        proInsights: { post: "RAZÓN PSICOLÓGICA: Las fotos naturales (candid) tienen un 40% más de engagement." }
-      },
-      {
-        mainPost: "¿Te has sentido estancado alguna vez? Yo también. *La clave fue dejar de mirar el resultado y enamorarme del proceso*. ¿Te pasa?",
-        cta: "Responde 'PROCESO' si estás en ello",
-        imageHint: `MISIÓN VISUAL: Debes crear un VIDEO TIME-LAPSE (cámara rápida) de 10 segundos trabajando/organizando y LUEGO SUBIRLO a tu ${network === 'WhatsApp' ? 'Estados de WhatsApp' : network}`,
-        proInsights: { post: "RAZÓN PSICOLÓGICA: Mostrar el trabajo duro 'sucio' genera más conexión que el éxito pulido." }
-      },
-      {
-        mainPost: "No es suerte, es *consistencia*. Mientras otros duermen, algunos estamos construyendo el futuro. Buenas noches, equipo.",
-        cta: "Un 🔥 por los que construyen.",
-        imageHint: `MISIÓN VISUAL: Debes crear una FOTO nocturna con luz tenue de tu espacio de trabajo (o una taza de té) y LUEGO SUBIRLO a tu ${network === 'WhatsApp' ? 'Estados de WhatsApp' : network}`,
-        proInsights: { post: "RAZÓN PSICOLÓGICA: Pertenencia a un grupo exclusivo (los que trabajan duro)." }
-      },
-      {
-        mainPost: "3 cosas que aprendí esta semana: 1. Tu mente cree lo que le dices. 2. La acción mata el miedo. 3. *Tú puedes más de lo que crees*.",
-        cta: "Guarda esto para leerlo mañana.",
-        imageHint: `MISIÓN VISUAL: Debes crear un VIDEO tipo 'Selfie' hablando (o solo asintiendo con música) y LUEGO SUBIRLO a tu ${network === 'WhatsApp' ? 'Estados de WhatsApp' : network}`,
-        proInsights: { post: "RAZÓN PSICOLÓGICA: Las listas (1, 2, 3) son ultra-leíbles y compartibles." }
-      },
-      {
-        mainPost: "Deja de esperar que las cosas sean más fáciles. *Empieza a ser tú mejor*. El crecimiento duele, pero la mediocridad duele más.",
-        cta: "Comenta 'CRECIMIENTO' si estás listo.",
-        imageHint: `MISIÓN VISUAL: Debes crear una FOTO de tus herramientas de trabajo (agenda, boli, móvil) ordenadas perfectamente y LUEGO SUBIRLO a tu ${network === 'WhatsApp' ? 'Estados de WhatsApp' : network}`,
-        proInsights: { post: "RAZÓN PSICOLÓGICA: El orden visual transmite claridad mental y profesionalismo." }
-      }
-    ];
-
-    return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+    // Fallback if AI fails (e.g. Quota Exceeded). Return latency notice instead of fake success.
+    return {
+      mainPost: "Mi sistema está experimentando alta latencia. Por favor, intenta generar tu publicación de nuevo en breve.",
+      cta: "Reintentar en 60s",
+      imageHint: "La conexión con el servidor IA fue interrumpida. Reintentando...",
+      proInsights: { post: "Asegúrate de tener buena conexión a internet." }
+    };
   }
 };
 
@@ -387,29 +364,11 @@ export const generateObjectionResponse = async (objection: string, companyName: 
   } catch (error: any) {
     console.warn("AI Error (Objection):", error.message);
 
-    // Mapping keys for mock selection
-    const keyMap: Record<string, string> = {
-      "No tengo dinero": "money",
-      "No tengo tiempo": "time",
-      "Es una pirámide": "pyramid",
-      "Tengo que consultarlo con mi pareja": "partner",
-      "No soy bueno vendiendo": "sales",
-      "Déjame pensarlo": "default"
-    };
-
-    const key = keyMap[objection] || "default";
-    const responses = (MOCK_RESPONSES.objection as any)[key] || MOCK_RESPONSES.objection.default;
-    const selectedScript = getRandomMock(responses);
-
-    // Select a better mock directive based on tone
-    const toneDirectives = (MOCK_RESPONSES.audioDirectives as any)[tone] || MOCK_RESPONSES.audioDirectives.Empático;
-    const selectedDirective = getRandomMock(toneDirectives);
-
     return {
-      script: selectedScript,
-      psychology: "Validación de la duda y reencuadre hacia la solución.",
-      tone: tone || "Empático y suave",
-      audioDirective: selectedDirective
+      script: "Mi servidor está experimentando un poco de latencia o tu cuota ha sido excedida. Dame un minuto y compruébalo.",
+      psychology: "Transparencia: Avisar de fallo de red.",
+      tone: "Informativo",
+      audioDirective: "Tono natural."
     };
   }
 };
@@ -423,10 +382,10 @@ export const generateDailyMotivation = async (goals: any, progress: any): Promis
       maxOutputTokens: 100,
     });
 
-    return data.text || getRandomMock(MOCK_RESPONSES.motivation);
+    return data.text || "Fallo de comunicación temporal con el servidor IA. Continúa con tu hábito y reconéctate luego.";
   } catch (error: any) {
     console.warn("AI Error (Motivation):", error.message);
-    return getRandomMock(MOCK_RESPONSES.motivation);
+    return "Mi red está saturada. Tómalo con calma y vuelve a intentar más tarde.";
   }
 };
 
@@ -439,10 +398,10 @@ export const generateDailyPostIdea = async (): Promise<string> => {
       temperature: 0.8,
     });
 
-    return data.text || MOCK_RESPONSES.postIdea;
+    return data.text || "1. GANCHO: Espera un momento... --- 2. IDEA: Mi servidor tiene latencia. --- 3. FORMATO: Texto --- 4. CTA: Vuelve a intentar en unos segundos.";
   } catch (error: any) {
     console.warn("AI Error (PostIdea):", error.message);
-    return MOCK_RESPONSES.postIdea;
+    return "1. ERROR: Latencia de Red --- 2. SOLUCIÓN: Intentar en 1 minuto. --- 3. FORMATO: Texto --- 4. CTA: Reintenta pronto.";
   }
 };
 
@@ -552,12 +511,6 @@ export const generateEliteAssistantResponse = async (userMessage: string, histor
     return data.text || "¡Excelente pregunta! Lo más importante ahora es que mantengas tu consistencia en los Contactos. ¿Ya hiciste los tuyos hoy?";
   } catch (error: any) {
     console.warn("AI Error (EliteAssistant):", error.message);
-    const mockResponses = [
-      "¡Esa es la mentalidad! Recuerda que el embudo de 3 pasos (Contactar, Seguimiento, Postear) es tu mapa del tesoro. Solo apégate al plan.",
-      "Excelente. Oye, ¿ya viste lo fácil que fue esto? Imagina a todo tu equipo haciéndolo. Busca el *Sello de Liderazgo* (Duplicar Sistema) y compártelo con ellos.",
-      "Entiendo perfectamente. Los líderes como nosotros no se detienen por eso. Vamos a enfocarnos en tus métricas de hoy, ¡cada contacto cuenta para tu nivel Elite!",
-      "Lo primero siempre es prospectar. Si el vaso no está lleno, no puedes dar de beber. ¿Ya enviaste los contactos de esta jornada?"
-    ];
-    return mockResponses[Math.floor(Math.random() * mockResponses.length)];
+    return "Mi servidor de IA está experimentando alta demanda o restricciones de cuota. Por favor, dame un segundo y vuelve a preguntarme.";
   }
 };
