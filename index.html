@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-title" content="Networker Pro">
     <link rel="apple-touch-icon" href="/icon-192.png">
 
-    <!-- Preloads for Speed -->
+    <!-- Preloads for Speed -->
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -38,7 +38,7 @@
 
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
+    <meta http-equiv="Expires" content="0">
 
     <!-- GOOGLE ANALYTICS MAESTRO (Frank Estrategias) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-KWPGF9WES2"></script>
@@ -49,19 +49,34 @@
         gtag('config', 'G-KWPGF9WES2');
     </script>
 
-    <!-- FRANK BOLIVAR AI (Google AI Studio Web SDK) -->
-    <script src="https://app.customgpt.ai/embed.js" async defer></script>
+    <!-- FRANK BOLIVAR AI (Motor Elite Personalized) -->
     <script>
-        // Nota: Google AI Studio Apps suelen usar un iframe o un widget de CustomGPT/Vertex
-        // Si Frank tiene un ID de despliegue específico, se inyecta aquí.
-        // Por ahora, habilitamos el contenedor para el Agente Maestro.
         window.initAIAgent = () => {
-            console.log("🤖 Frank Bolivar AI: Activo en modo Compacto.");
+            console.log("🤖 Motor Elite personalizado: Sincronización iniciada.");
         };
+
+        // FASE 5.1: BYPASS AGRESIVO DE CACHÉ PWA (Para arreglar voz en móvil)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                for (let registration of registrations) {
+                    registration.update();
+                }
+            });
+            // Limpia cachés preexistentes (viejos Vites)
+            caches.keys().then(function (names) {
+                for (let name of names) {
+                    if (name.includes('workbox') || name.includes('precache')) {
+                        caches.delete(name);
+                    }
+                }
+            });
+        }
     </script>
-  <script type="module" crossorigin src="/assets/index-DT3Sb0hs.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-CDzP5QeT.css">
-<link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
+
+
+  <script type="module" crossorigin src="/assets/index-B3mVdjF5.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BBaEEHLS.css">
+<link rel="manifest" href="/manifest.webmanifest"></head>
 
 <body>
     <!-- PANTALLA DE DIAGNÓSTICO (Solo visible en error) -->
@@ -86,8 +101,7 @@
     </div>
 
     <script>
-        // SISTEMA DE MONITOREO Y REPARACIÓN MAESTRA
-        const NUKE_ID = '1.7.2-ultra'; // Force cache clear for Chrome Blank Screen fix
+        // SISTEMA DE MONITOREO MAESTRO
 
         // WATCHDOG: Si en 4 segundos no hay contenido en #root, mostrar diagnóstico
         setTimeout(() => {
@@ -95,7 +109,7 @@
             if (root && root.innerHTML === "") {
                 console.error("🚨 Watchdog: App failed to load in 4s. Showing diagnostic.");
                 document.getElementById('critical-diagnostic').style.display = 'block';
-                document.getElementById('diagnostic-log').textContent += '⚠️ Tiempo de carga excedido (Watchdog)\nPosible bloqueo por Service Worker antiguo.\n';
+                document.getElementById('diagnostic-log').textContent += '⚠️ Tiempo de carga excedido (Watchdog)\nPosible bloqueo de red o error de sintaxis.\n';
             }
         }, 4000);
 
@@ -115,42 +129,9 @@
                 document.getElementById('diagnostic-log').textContent += '⚠️ Fallo crítico en script: ' + (e.target.src || 'anónimo') + '\n';
             }
         }, true);
-
-        if (localStorage.getItem('nuke_v') !== NUKE_ID) {
-            console.warn('💣 Iniciando Limpieza Atómica...', NUKE_ID);
-
-            // 1. Limpiar Service Workers
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(regs => {
-                    regs.forEach(reg => reg.unregister());
-                });
-            }
-
-            // 2. Limpiar Caches
-            if ('caches' in window) {
-                caches.keys().then(names => {
-                    names.forEach(name => caches.delete(name));
-                });
-            }
-
-            // 3. Limpiar Bases de Datos (Protegido para navegadores antiguos/Safari)
-            if ('indexedDB' in window && typeof indexedDB.databases === 'function') {
-                indexedDB.databases().then(dbs => {
-                    dbs.forEach(db => {
-                        if (db.name) indexedDB.deleteDatabase(db.name);
-                    });
-                }).catch(err => console.log('IDB Cleanup skip:', err));
-            }
-
-            // 4. Marcar y reiniciar
-            localStorage.setItem('nuke_v', NUKE_ID);
-            setTimeout(() => {
-                window.location.replace(window.location.origin + window.location.pathname + '?r=' + Date.now());
-            }, 800);
-        }
     </script>
 
-    <div id="root"></div>
+    <div id="root"></div>
 </body>
 
 </html>
