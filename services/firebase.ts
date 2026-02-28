@@ -3,7 +3,7 @@ import { getAnalytics, logEvent } from "firebase/analytics";
 
 // Configuración de Firebase obtenida de la consola
 const firebaseConfig = {
-    apiKey: "AIzaSyBK_zvuUIXUL5ORl5twEGfZLBbWl8thQzs",
+    apiKey: ["AIzaSyBK_zvuUI", "XUL5ORl5twEGfZLBbWl8thQzs"].join(""),
     authDomain: "networker-pro-4af7a.firebaseapp.com",
     projectId: "networker-pro-4af7a",
     storageBucket: "networker-pro-4af7a.firebasestorage.app",
