@@ -56,7 +56,25 @@
         window.initAIAgent = () => {
             console.log("🤖 Motor Elite personalizado: Sincronización iniciada.");
         };
+
+        // FASE 5.1: BYPASS AGRESIVO DE CACHÉ PWA (Para arreglar voz en móvil)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                for (let registration of registrations) {
+                    registration.update();
+                }
+            });
+            // Limpia cachés preexistentes (viejos Vites)
+            caches.keys().then(function (names) {
+                for (let name of names) {
+                    if (name.includes('workbox') || name.includes('precache')) {
+                        caches.delete(name);
+                    }
+                }
+            });
+        }
     </script>
+
 
 </head>
 
