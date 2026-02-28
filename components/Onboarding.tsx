@@ -39,7 +39,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         if (step < steps.length) {
             setStep(step + 1);
         } else {
-            onComplete("Independiente", "Salud y Bienestar");
+            onComplete("", "Salud y Bienestar");
         }
     };
 

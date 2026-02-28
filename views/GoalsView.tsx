@@ -62,8 +62,7 @@ export const GoalsView: React.FC<GoalsViewProps> = () => {
   };
 
   const isConfigured = !!goals.companyName &&
-    goals.companyName.trim().length > 0 &&
-    goals.companyName.trim() !== 'Independiente';
+    goals.companyName.trim().length > 0;
 
   return (
     <div className="space-y-6 animate-in slide-in-from-right duration-300 pb-20">

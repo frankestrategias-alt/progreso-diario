@@ -96,52 +96,52 @@ const speakWithBrowser = async (text: string): Promise<void> => {
 };
 
 export const speak = async (text: string): Promise<void> => {
-  try {
-    // Limpiamos la pronunciación de viñetas, emojis y formatos markdown
-    const cleanText = text
-      .replace(/\*/g, '')
-      .replace(/#/g, '')
-      .replace(/[\u{1F600}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F300}-\u{1F5FF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}]/gu, '')
-      .trim();
+  // Limpiamos la pronunciación de viñetas, emojis y formatos markdown
+  const cleanText = text
+    .replace(/\*/g, '')
+    .replace(/#/g, '')
+    .replace(/[\u{1F600}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F300}-\u{1F5FF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}]/gu, '')
+    .trim();
 
-    const data = await callAiService("tts", { text: cleanText });
-    if (!data.audioContent) throw new Error("No audio content from premium TTS");
+  // Dividimos el texto en fragmentos (oraciones) para evitar superar el límite de 250 caracteres de Google TTS Journey
+  const sentenceChunks = cleanText.match(/[^.?!]+[.?!]+|[^.?!]+$/g) || [cleanText];
 
-    const audioUrl = "data:audio/mp3;base64," + data.audioContent;
+  for (const rawChunk of sentenceChunks) {
+    const chunkText = rawChunk.trim();
+    if (!chunkText) continue;
 
-    if (!globalAudio) globalAudio = new Audio();
-    globalAudio.src = audioUrl;
-
-    await new Promise<void>((resolve, reject) => {
-      globalAudio!.onended = () => resolve();
-      globalAudio!.onerror = reject;
-      globalAudio!.play().catch(reject);
-    });
-  } catch (error) {
-    console.warn("Premium TTS failed or missing. Using Google Translate Neural Voice...", error);
     try {
-      const cleanText = text
-        .replace(/[*#_`]/g, '')
-        .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
-        .replace(/[\u{2600}-\u{27BF}]/gu, '')
-        .replace(/\s+/g, ' ')
-        .trim();
+      const data = await callAiService("tts", { text: chunkText });
+      if (!data.audioContent) throw new Error("No audio content from premium TTS");
 
-      // Maximum 200 characters per request for this endpoint (sufficient for our 35-word limit rule)
-      const chunk = cleanText.substring(0, 199);
-      const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=${encodeURIComponent(chunk)}`;
+      const audioUrl = "data:audio/mp3;base64," + data.audioContent;
 
       if (!globalAudio) globalAudio = new Audio();
-      globalAudio.src = url;
+      globalAudio.src = audioUrl;
 
       await new Promise<void>((resolve, reject) => {
         globalAudio!.onended = () => resolve();
-        globalAudio!.onerror = () => reject(new Error("Translate TTS Error"));
+        globalAudio!.onerror = reject;
         globalAudio!.play().catch(reject);
       });
-    } catch (translateError) {
-      console.warn("Translate TTS failed, falling back to Browser Speech Synthesis");
-      await speakWithBrowser(text);
+    } catch (error) {
+      console.warn("Premium TTS failed for chunk. Using Translate Neural Voice...", error);
+      try {
+        const safeChunk = chunkText.substring(0, 199);
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=${encodeURIComponent(safeChunk)}`;
+
+        if (!globalAudio) globalAudio = new Audio();
+        globalAudio.src = url;
+
+        await new Promise<void>((resolve) => {
+          globalAudio!.onended = () => resolve();
+          globalAudio!.onerror = () => resolve(); // Si falla, pasamos al siguiente chunk
+          globalAudio!.play().catch(() => resolve());
+        });
+      } catch (translateError) {
+        console.warn("Translate TTS failed, falling back to Browser Speech Synthesis");
+        await speakWithBrowser(chunkText);
+      }
     }
   }
 };
@@ -492,10 +492,10 @@ CONOCIMIENTO DEL SISTEMA NETWORKER PRO:
 5. DUPLICACIÓN: El Botón de Duplicación (Dopamina de Equipo) es para que el equipo crezca rápido. Es liderazgo puro.
 
 REGLAS CRÍTICAS PARA LA VOZ (OBLIGATORIO):
-1. MÁXIMO 35 PALABRAS: Tus respuestas deben ser breves pero naturales (aprox. 4 a 5 líneas). El usuario te escucha por audio, no lo agotes pero dale valor.
-2. PROHIBIDO JERGA TÉCNICA: NUNCA digas palabras como "acento", "tilde", "punto", "coma", "asterisco", "emoji" o nombres de signos de puntuación. Habla como un mentor real.
-3. SIN FORMATO VISUAL: No uses asteriscos, guiones ni emojis. Escribe texto plano y limpio.
-4. FOCO EN ACCIÓN: Dirige siempre al usuario hacia Contactar, Seguimiento o Publicar.
+1. MÁXIMO 35 PALABRAS: Tus respuestas deben ser breves pero naturales. IMPORTANTE: NUNCA dejes oraciones a medias o incompletas. Si te acercas al límite de extensión, ASEGÚRATE de concluir la frase lógicamente con un punto final.
+2. PROHIBIDO JERGA TÉCNICA: NUNCA digas palabras como "acento", "tilde", "punto", "coma", "asterisco", "emoji". Habla y compórtate como un mentor humano real.
+3. SIN FORMATO VISUAL: No uses asteriscos, negritas, guiones ni emojis. Escribe en texto plano completamente limpio.
+4. FOCO EN ACCIÓN: Dirige siempre al usuario hacia Contactar, Seguimiento o Publicar en la plataforma.
 
 El usuario acaba de decir: `;
 
