@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Target, Save, Trophy, Share2, Copy,
   CheckCircle2, Rocket, ArrowRight, X, ShieldCheck, Briefcase
@@ -138,7 +139,9 @@ export const GoalsView: React.FC<GoalsViewProps> = () => {
               <Share2 size={22} />
             </div>
             <div>
-              <p className={`text-[10px] font-black uppercase tracking-[0.3em] ${isConfigured ? 'text-emerald-100' : 'text-indigo-400'}`}>Protocolo de Duplicación</p>
+              <p className={`text-[10px] font-black uppercase tracking-[0.3em] ${isConfigured ? 'text-emerald-100' : 'text-indigo-400'}`}>
+                {isConfigured && goals.sponsorName ? `ESTRATEGIA DE ${goals.sponsorName}` : 'Protocolo de Duplicación'}
+              </p>
               <h4 className="text-xl font-black tracking-tight uppercase">Duplica tu Éxito</h4>
             </div>
           </div>
@@ -167,60 +170,62 @@ export const GoalsView: React.FC<GoalsViewProps> = () => {
           </button>
 
           <p className={`text-center text-[10px] mt-6 font-black uppercase tracking-[0.25em] transition-opacity duration-700 ${isConfigured ? 'text-emerald-200 opacity-100' : 'text-white/20'}`}>
-            {isConfigured ? `🚀 SISTEMA ACTIVADO: ${goals.companyName?.toUpperCase()}` : '⚠️ PERSONALIZA TU MARCA PARA ACTIVAR'}
+            {isConfigured ? `🚀 SISTEMA ACTIVADO: ${goals.companyName?.toUpperCase()}${goals.sponsorName ? ` • ${goals.sponsorName.toUpperCase()}` : ''}` : '⚠️ PERSONALIZA TU MARCA PARA ACTIVAR'}
           </p>
         </div>
       </div>
 
       {/* EDIT MODAL (The "Emerging Window") */}
-      {isEditing && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-slate-900/95 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-md rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="p-8 pb-4 flex justify-between items-center bg-slate-50 border-b border-slate-100">
+      {isEditing && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-slate-900/95 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-md max-h-[85vh] flex flex-col rounded-[32px] sm:rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-white/10">
+            {/* Cabecera Fija */}
+            <div className="shrink-0 p-6 sm:p-8 pb-5 flex justify-between items-center bg-slate-50 border-b border-slate-100 relative z-10">
               <div>
                 <h3 className="text-xl font-black text-slate-800">Mi Estrategia Pro</h3>
                 <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-0.5">Configuración de Élite</p>
               </div>
-              <button onClick={() => setIsEditing(false)} className="p-2 bg-slate-200 text-slate-500 rounded-full hover:bg-slate-300">
+              <button onClick={() => setIsEditing(false)} className="p-2 sm:p-2.5 bg-slate-200 text-slate-600 rounded-full hover:bg-slate-300 shadow-sm transition-colors">
                 <X size={20} />
               </button>
             </div>
 
-            <div className="p-8 space-y-6">
+            {/* Contenido Scrolleable */}
+            <div className="flex-1 p-6 sm:p-8 space-y-5 overflow-y-auto">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Contactos Hoy</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Contactos Hoy</label>
                   <input
                     type="number"
                     value={localGoals.dailyContacts}
                     onChange={(e) => setLocalGoals({ ...localGoals, dailyContacts: parseInt(e.target.value) || 0 })}
-                    className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-indigo-400 transition-all font-black text-slate-800"
+                    className="w-full p-3.5 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-indigo-400 transition-all font-black text-slate-800"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Seguimientos</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Seguimientos</label>
                   <input
                     type="number"
                     value={localGoals.dailyFollowUps}
                     onChange={(e) => setLocalGoals({ ...localGoals, dailyFollowUps: parseInt(e.target.value) || 0 })}
-                    className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-indigo-400 transition-all font-black text-slate-800"
+                    className="w-full p-3.5 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-indigo-400 transition-all font-black text-slate-800"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Tu Nombre (Líder)</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Tu Nombre (Líder)</label>
                 <input
                   type="text"
                   value={localGoals.sponsorName || ''}
                   onChange={(e) => setLocalGoals({ ...localGoals, sponsorName: e.target.value })}
                   placeholder="Ej: Frank"
-                  className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-indigo-400 transition-all font-black text-slate-800 shadow-inner mb-4"
+                  className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-indigo-400 transition-all font-black text-slate-800 shadow-inner"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Tu Compañía / Marca</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Tu Compañía / Marca</label>
                 <input
                   type="text"
                   value={localGoals.companyName || ''}
@@ -231,7 +236,7 @@ export const GoalsView: React.FC<GoalsViewProps> = () => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Reto del Equipo</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Reto del Equipo</label>
                 <textarea
                   value={localGoals.teamChallenge || ''}
                   onChange={(e) => setLocalGoals({ ...localGoals, teamChallenge: e.target.value })}
@@ -241,16 +246,21 @@ export const GoalsView: React.FC<GoalsViewProps> = () => {
                 />
               </div>
 
-              <button
-                onClick={handleSave}
-                className="w-full bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] py-4 px-8 rounded-[22px] flex items-center justify-center gap-2.5 shadow-xl hover:bg-indigo-600 transition-all active:scale-95 border border-white/5"
-              >
-                <Save size={16} className="text-emerald-400 fill-current" />
-                Guardar Estrategia
-              </button>
+              <div className="pt-2">
+                {JSON.stringify(localGoals) !== JSON.stringify(goals) && (
+                  <button
+                    onClick={handleSave}
+                    className="w-full bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] py-4 px-8 rounded-[22px] flex items-center justify-center gap-2.5 shadow-xl hover:bg-indigo-600 transition-all active:scale-95 border border-white/5 animate-in slide-in-from-bottom-2 fade-in"
+                  >
+                    <Save size={16} className="text-emerald-400 fill-current" />
+                    Guardar Estrategia
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Signature Ritual Preview */}

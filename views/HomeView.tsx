@@ -473,10 +473,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
         onAddPoints={addPoints}
       />
 
-      <div className="my-10 flex items-center justify-center gap-4 px-10 opacity-80">
-        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-slate-400 to-transparent" />
-        <div className="w-2 h-1.5 rounded-full border border-slate-400 rotate-45" />
-        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-slate-400 to-transparent" />
+      <div className="my-10 flex items-center justify-center gap-4 px-10 opacity-100">
+        <div className="h-[1.5px] flex-1 bg-gradient-to-r from-transparent via-slate-800 dark:via-slate-300 to-transparent" />
+        <div className="w-2.5 h-2.5 rounded-sm border-2 border-slate-800 dark:border-slate-300 rotate-45" />
+        <div className="h-[1.5px] flex-1 bg-gradient-to-r from-transparent via-slate-800 dark:via-slate-300 to-transparent" />
       </div>
 
       <button
@@ -498,6 +498,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
       </button>
 
       <DailySecret />
+
+      {/* Separador Visual (Servicios Exclusivos) */}
+      <div className="my-10 flex items-center justify-center gap-4 px-10 opacity-100">
+        <div className="h-[1.5px] flex-1 bg-gradient-to-r from-transparent via-slate-800 dark:via-slate-300 to-transparent" />
+        <div className="w-2.5 h-2.5 rounded-sm border-2 border-slate-800 dark:border-slate-300 rotate-45" />
+        <div className="h-[1.5px] flex-1 bg-gradient-to-r from-transparent via-slate-800 dark:via-slate-300 to-transparent" />
+      </div>
 
       <EliteCommandCenter />
 

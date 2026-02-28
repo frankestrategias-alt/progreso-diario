@@ -25,23 +25,9 @@ export const SuccessCard: React.FC<SuccessCardProps> = ({ objection, response, o
 
         const shareText = `🔥 *¡OBJECIÓN SUPERADA!* 🔥\n\n📌 *El Prospecto dijo:* "${objection}"\n🛡️ *Mi Respuesta Pro:* "${response}"\n\n_Generado con Networker Pro_ 🚀`;
 
-        if (navigator.share) {
-            try {
-                trackEvent('share_success', { method: 'native' });
-                await navigator.share({
-                    title: 'Victoria de Cierre 🛡️',
-                    text: shareText,
-                    url: 'https://sistemapremium.netlify.app/?origen=app'
-                });
-            } catch (err) {
-                // Si el usuario cancela o hay error en el menú nativo, vamos directo a WhatsApp
-                trackEvent('share_success', { method: 'whatsapp_fallback' });
-                directWhatsAppShare(shareText);
-            }
-        } else {
-            trackEvent('share_success', { method: 'whatsapp_direct' });
-            directWhatsAppShare(shareText);
-        }
+        // Directamente copiar al portapapeles en lugar de compartir
+        trackEvent('share_success', { method: 'clipboard' });
+        copyToClipboard(shareText);
     };
 
     const directWhatsAppShare = (text: string) => {

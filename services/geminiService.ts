@@ -216,7 +216,7 @@ Rules:
 2. NATURAL HUMAN SPEECH: Do NOT use technical terms like "acento", "tilde", "asterisco", "paréntesis" or "emoji". Just speak naturally. No sales robot talk.
 3. EMPATHY FIRST: Connect quickly, then give a short action-oriented task.`;
 
-const modelId = "gemini-2.5-flash"; // Nuevo estándar obligado para nuevas API keys
+const modelId = "gemini-1.5-flash"; // Estándar validado para la API de Gemini
 
 // --- SAFE MOCK SYSTEM (FALLBACKS) ---
 // Expanded to ensure variety even without API Key

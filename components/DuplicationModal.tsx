@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { UserGoals } from '../types';
 import { Share2, Check, X, ShieldCheck, Target, Trophy, Rocket } from 'lucide-react';
 
@@ -12,12 +13,12 @@ interface DuplicationModalProps {
 export const DuplicationModal: React.FC<DuplicationModalProps> = ({
     incomingGoals, onAccept, onCancel, previewMode = false
 }) => {
-    return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-xl animate-in fade-in duration-300">
-            <div className="relative w-full max-w-sm bg-white rounded-[40px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-500">
+    return typeof document !== 'undefined' ? createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-slate-900/95 backdrop-blur-xl animate-in fade-in duration-300">
+            <div className="relative w-full max-w-sm max-h-[85vh] flex flex-col bg-white rounded-[32px] sm:rounded-[40px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-500 border border-white/10">
 
                 {/* Header Visual - Emerald Theme */}
-                <div className="bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-600 p-8 text-white text-center relative">
+                <div className="shrink-0 bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-600 p-6 sm:p-8 text-white text-center relative">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
                     <div className="relative z-10 flex flex-col items-center">
                         <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-4 shadow-xl border border-white/20">
@@ -33,7 +34,7 @@ export const DuplicationModal: React.FC<DuplicationModalProps> = ({
                 </div>
 
                 {/* Content */}
-                <div className="p-8 space-y-6">
+                <div className="flex-1 p-6 sm:p-8 space-y-5 overflow-y-auto">
                     <div className="bg-slate-50 rounded-3xl p-5 border border-slate-100">
                         {incomingGoals.sponsorName && !previewMode ? (
                             <div className="mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl shadow-inner">
@@ -103,6 +104,7 @@ export const DuplicationModal: React.FC<DuplicationModalProps> = ({
                     </div>
                 </div>
             </div>
-        </div>
-    );
+        </div>,
+        document.body
+    ) : null;
 };

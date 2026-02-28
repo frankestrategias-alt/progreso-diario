@@ -22,7 +22,7 @@ export const handler = async (event) => {
             const { prompt, text, systemInstruction, systemPrompt, temperature, history, responseMimeType, maxOutputTokens } = payload;
             const finalUserPrompt = prompt || text;
             const finalSystemInstruction = systemInstruction || systemPrompt;
-            const modelId = "gemini-2.5-flash"; // Nuevo estándar obligado para nuevas API keys
+            const modelId = "gemini-1.5-flash"; // Estándar validado para la API de Gemini
 
             let contents = [];
 
