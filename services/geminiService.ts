@@ -103,46 +103,109 @@ export const speak = async (text: string): Promise<void> => {
     .replace(/[\u{1F600}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F300}-\u{1F5FF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}]/gu, '')
     .trim();
 
-  // Dividimos el texto en fragmentos (oraciones) para evitar superar el límite de 250 caracteres de Google TTS Journey
-  const sentenceChunks = cleanText.match(/[^.?!]+[.?!]+|[^.?!]+$/g) || [cleanText];
+  // --- CHUNKING LOGIC ---
+  const matchResult = cleanText.match(/[^.?!]+[.?!]+|\s*[^.?!]+$/g);
+  let chunks: string[] = matchResult ? Array.from(matchResult) as string[] : [];
+  chunks = chunks.map(c => c.trim()).filter(c => c.length > 0);
 
-  for (const rawChunk of sentenceChunks) {
-    const chunkText = rawChunk.trim();
-    if (!chunkText) continue;
+  let optimizedChunks: string[] = [];
+  let currentChunk = "";
+  for (let i = 0; i < chunks.length; i++) {
+    if ((currentChunk.length + chunks[i].length) < 160) {
+      currentChunk += (currentChunk ? " " : "") + chunks[i];
+    } else {
+      if (currentChunk) optimizedChunks.push(currentChunk);
+      currentChunk = chunks[i];
+    }
+  }
+  if (currentChunk) optimizedChunks.push(currentChunk);
+
+  if (optimizedChunks.length === 0) optimizedChunks = [cleanText.substring(0, 199)];
+
+  // --- AUDIO QUEUE & PRE-BUFFERING ---
+  let audioQueue: any[] = [];
+  let isPlaying = false;
+  let currentChunkIndex = 0;
+
+  const fetchAudioForChunk = async (chunkIndex: number) => {
+    if (chunkIndex >= optimizedChunks.length) return null;
+    const textChunk = optimizedChunks[chunkIndex];
 
     try {
-      const data = await callAiService("tts", { text: chunkText });
-      if (!data.audioContent) throw new Error("No audio content from premium TTS");
-
-      const audioUrl = "data:audio/mp3;base64," + data.audioContent;
-
-      if (!globalAudio) globalAudio = new Audio();
-      globalAudio.src = audioUrl;
-
-      await new Promise<void>((resolve, reject) => {
-        globalAudio!.onended = () => resolve();
-        globalAudio!.onerror = reject;
-        globalAudio!.play().catch(reject);
-      });
-    } catch (error) {
-      console.warn("Premium TTS failed for chunk. Using Translate Neural Voice...", error);
+      const data = await callAiService("tts", { text: textChunk });
+      if (data.audioContent) {
+        const audioUrl = "data:audio/mp3;base64," + data.audioContent;
+        const audio = new Audio(audioUrl);
+        return { isBrowserFallback: false, audio, text: textChunk };
+      } else {
+        return { isBrowserFallback: true, text: textChunk };
+      }
+    } catch (e) {
+      console.warn(`Premium TTS failed for chunk ${chunkIndex}. Using fallback...`, e);
       try {
-        const safeChunk = chunkText.substring(0, 199);
+        const safeChunk = textChunk.substring(0, 199);
         const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=${encodeURIComponent(safeChunk)}`;
-
-        if (!globalAudio) globalAudio = new Audio();
-        globalAudio.src = url;
-
-        await new Promise<void>((resolve) => {
-          globalAudio!.onended = () => resolve();
-          globalAudio!.onerror = () => resolve(); // Si falla, pasamos al siguiente chunk
-          globalAudio!.play().catch(() => resolve());
-        });
-      } catch (translateError) {
-        console.warn("Translate TTS failed, falling back to Browser Speech Synthesis");
-        await speakWithBrowser(chunkText);
+        const audio = new Audio(url);
+        return { isBrowserFallback: false, audio, text: textChunk };
+      } catch (err2) {
+        return { isBrowserFallback: true, text: textChunk };
       }
     }
+  };
+
+  const playNextInQueue = async () => {
+    if (audioQueue.length === 0 && currentChunkIndex >= optimizedChunks.length) {
+      isPlaying = false;
+      return;
+    }
+
+    isPlaying = true;
+    if (audioQueue.length > 0) {
+      const audioToPlay = audioQueue.shift();
+
+      // PRE-BUFFER: Download next while playing
+      if (currentChunkIndex < optimizedChunks.length) {
+        fetchAudioForChunk(currentChunkIndex).then(nextAudio => {
+          if (nextAudio) audioQueue.push(nextAudio);
+          currentChunkIndex++;
+        });
+      }
+
+      if (audioToPlay.isBrowserFallback) {
+        await speakWithBrowser(audioToPlay.text);
+        playNextInQueue();
+      } else {
+        globalAudio = audioToPlay.audio;
+        globalAudio!.onended = () => { playNextInQueue(); };
+        globalAudio!.onerror = () => { playNextInQueue(); };
+        const playPromise = globalAudio!.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((e) => {
+            console.warn("Autoplay bloqueado:", e);
+            playNextInQueue();
+          });
+        }
+      }
+    } else {
+      const nextAudio = await fetchAudioForChunk(currentChunkIndex);
+      currentChunkIndex++;
+      if (nextAudio) {
+        audioQueue.push(nextAudio);
+        playNextInQueue();
+      } else {
+        isPlaying = false;
+      }
+    }
+  };
+
+  // ARRANCAR COLA
+  const firstAudio = await fetchAudioForChunk(currentChunkIndex);
+  currentChunkIndex++;
+  if (firstAudio) {
+    audioQueue.push(firstAudio);
+    playNextInQueue();
+  } else {
+    speakWithBrowser(cleanText);
   }
 };
 
