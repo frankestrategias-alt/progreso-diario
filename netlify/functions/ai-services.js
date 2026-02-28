@@ -81,7 +81,7 @@ export const handler = async (event) => {
         if (action === "tts") {
             const textToSpeak = payload.text;
 
-            // 1. ElevenLabs
+            // 1. ElevenLabs (Requiere KEY premium)
             if (ELEVENLABS_API_KEY) {
                 const voiceId = "pNInz6obpgDQGcFmaJgB"; // Adam
                 const elRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
@@ -97,15 +97,40 @@ export const handler = async (event) => {
                 if (elRes.ok) {
                     const arrayBuffer = await elRes.arrayBuffer();
                     const base64 = Buffer.from(arrayBuffer).toString('base64');
-                    return {
-                        statusCode: 200,
-                        headers: { "Access-Control-Allow-Origin": "*" },
-                        body: JSON.stringify({ audioContent: base64 })
-                    };
+                    return { statusCode: 200, headers: { "Access-Control-Allow-Origin": "*" }, body: JSON.stringify({ audioContent: base64 }) };
                 }
             }
 
-            // 2. Google Cloud
+            // 2. MICROSOFT NEURAL EDGE TTS (Gratis, Voz Hombre Ultra Premium)
+            try {
+                // Dynamically import to avoid top-level issues
+                const { EdgeTTS } = await import('node-edge-tts');
+                const fs = await import('fs');
+                const path = await import('path');
+                const os = await import('os');
+
+                const tts = new EdgeTTS({
+                    voice: 'es-CO-GonzaloNeural', // Voz masculina fluida y profesional
+                    lang: 'es-CO',
+                    outputFormat: 'audio-24khz-48kbitrate-mono-mp3'
+                });
+
+                const tempFilePath = path.join(os.tmpdir(), `tts-neural-${Date.now()}-${Math.floor(Math.random() * 1000)}.mp3`);
+                await tts.ttsPromise(textToSpeak, tempFilePath);
+
+                const audioContent = fs.readFileSync(tempFilePath, { encoding: 'base64' });
+                fs.unlinkSync(tempFilePath);
+
+                return {
+                    statusCode: 200,
+                    headers: { "Access-Control-Allow-Origin": "*" },
+                    body: JSON.stringify({ audioContent })
+                };
+            } catch (edgeError) {
+                console.error("Edge TTS Error:", edgeError);
+            }
+
+            // 3. Fallback Final (Google Cloud si hay llave)
             if (GOOGLE_CLOUD_KEY) {
                 const response = await fetch(
                     `https://texttospeech.googleapis.com/v1/text:synthesize?key=${GOOGLE_CLOUD_KEY}`,
@@ -121,22 +146,14 @@ export const handler = async (event) => {
                 );
                 const data = await response.json();
                 if (response.ok) {
-                    return {
-                        statusCode: 200,
-                        headers: { "Access-Control-Allow-Origin": "*" },
-                        body: JSON.stringify({ audioContent: data.audioContent || null })
-                    };
+                    return { statusCode: 200, headers: { "Access-Control-Allow-Origin": "*" }, body: JSON.stringify({ audioContent: data.audioContent || null }) };
                 }
             }
 
-            return {
-                statusCode: 200,
-                headers: { "Access-Control-Allow-Origin": "*" },
-                body: JSON.stringify({ audioContent: null })
-            };
+            return { statusCode: 200, headers: { "Access-Control-Allow-Origin": "*" }, body: JSON.stringify({ audioContent: null }) };
         }
 
-        return { statusCode: 400, body: JSON.stringify({ error: "Invalid action" }) };
+        return { statusCode: 400, headers: { "Access-Control-Allow-Origin": "*" }, body: JSON.stringify({ error: "Invalid action" }) };
 
     } catch (error) {
         console.error("Function Error:", error);
