@@ -39,6 +39,25 @@ export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, on
     const [showFeedback, setShowFeedback] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
 
+    // --- REFINEMENT: LOAD DRAFT ON MOUNT ---
+    useEffect(() => {
+        try {
+            const savedDraft = localStorage.getItem('dailyPost_draft');
+            if (savedDraft) {
+                const draft = JSON.parse(savedDraft);
+                // Only load if it's from today (safety)
+                const today = new Date().toISOString().split('T')[0];
+                if (draft.date === today && draft.strategy) {
+                    setStrategy(draft.strategy);
+                    setCustomContext(draft.context || '');
+                    setStep(2);
+                }
+            }
+        } catch (e) {
+            console.warn('Error loading draft:', e);
+        }
+    }, []);
+
     const handleResult = (result: 'success' | 'later') => {
         if (result === 'success') {
             triggerMagic();
@@ -71,6 +90,14 @@ export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, on
 
             const result = await generateSocialPost('WhatsApp', 'Atraer', 'Profesional', goals.companyName, contextWithTheme, goals.productNiche);
             setStrategy(result);
+
+            // SAVE DRAFT (Aguerita Refinement)
+            localStorage.setItem('dailyPost_draft', JSON.stringify({
+                date: new Date().toISOString().split('T')[0],
+                strategy: result,
+                context: customContext
+            }));
+
             setStep(2);
         } catch (error) {
             console.error(error);
@@ -80,12 +107,25 @@ export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, on
     };
 
     const handleComplete = () => {
-        if (!onPostComplete) return;
-        triggerMagic();
-        onPostComplete(false);
-        setIsCompleted(true);
-        // We don't force feedback here if they didn't copy, 
-        // they chose to finish manually.
+        if (!strategy) return;
+
+        // --- AGUERITA: AUTO COPY AND SHARE ---
+        handleCopyAll();
+
+        // Short delay to allow clipboard to work before opening WA
+        setTimeout(() => {
+            const text = getShareText();
+            const waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+            window.open(waUrl, '_blank');
+
+            // Celebrate!
+            if (onPostComplete) {
+                triggerMagic();
+                onPostComplete(false);
+            }
+            setIsCompleted(true);
+            localStorage.removeItem('dailyPost_draft'); // Mission accomplished
+        }, 500);
     };
 
     const getShareText = () => {
@@ -230,7 +270,10 @@ export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, on
                 setCustomContext={setCustomContext}
                 handleGenerate={handleGenerate}
                 loading={loading}
-                onCancel={() => setStep(0)}
+                onCancel={() => {
+                    localStorage.removeItem('dailyPost_draft');
+                    setStep(0);
+                }}
             />
         );
     }
@@ -238,7 +281,7 @@ export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, on
     // --- VIEW 2: RESULTS (HIGH IMPACT) ---
     if (step === 2 && strategy) {
         return (
-            <div className="max-w-2xl mx-auto pt-6 pb-24 animate-in slide-in-from-right duration-700 px-2">
+            <div className="max-w-2xl mx-auto pt-6 pb-24 animate-in slide-in-from-right zoom-in-95 duration-700 px-2">
 
                 {/* Header Page */}
                 <div onClick={() => setStep(1)} className="mb-8 flex items-center gap-3 cursor-pointer group">
@@ -252,8 +295,9 @@ export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, on
                 </div>
 
                 {/* Visual Mission Card (The "What to Show") */}
-                <div className="bg-slate-900 rounded-[32px] p-8 text-white shadow-2xl shadow-indigo-200/50 mb-6 relative overflow-hidden group border border-white/5">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[40px] -mr-10 -mt-10" />
+                <div className="bg-slate-900 rounded-[32px] p-8 text-white shadow-2xl shadow-indigo-200/50 mb-6 relative overflow-hidden group border border-white/5 transition-all hover:scale-[1.01] duration-500">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-[40px] -mr-10 -mt-10 animate-pulse" />
+                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] -ml-10 -mb-10 animate-pulse delay-700" />
                     <div className="relative z-10 flex flex-col items-center text-center">
                         <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center mb-4 shadow-xl shadow-indigo-500/20 transform rotate-3 group-hover:rotate-0 transition-transform">
                             <Palette size={28} className="text-amber-300" />
@@ -346,9 +390,10 @@ export const DailyPostView: React.FC<DailyPostViewProps> = ({ onPostComplete, on
 
                             <button
                                 onClick={handleShareResult}
-                                className="w-full py-5 rounded-[24px] bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 hover:bg-black transition-all active:scale-95 shadow-xl border border-white/10"
+                                className="w-full py-5 rounded-[24px] bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 hover:bg-black transition-all active:scale-95 shadow-xl border border-white/10 group overflow-hidden relative"
                             >
-                                <Share2 size={18} className="text-indigo-400" /> Inspirar a mi Equipo con el Logro
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-shimmer-sweep" />
+                                <Share2 size={18} className="text-indigo-400 group-hover:rotate-12 transition-transform" /> <span className="relative z-10">Inspirar a mi Equipo con el Logro</span>
                             </button>
                         </div>
                     )}

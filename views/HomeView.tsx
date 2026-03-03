@@ -7,27 +7,19 @@ import {
   Share2,
   CheckCircle2,
   Clock,
-  AlertCircle,
-  MoreHorizontal,
-  Plus,
-  ArrowRight,
-  TrendingUp,
-  Award,
-  Shield,
-  Zap,
-  ShoppingBag,
-  ChevronRight,
-  Settings,
-  UserPlus,
-  MessageCircle,
-  Megaphone,
-  Check,
   ShieldCheck,
   X,
   Copy,
-  PlusCircle,
   LayoutGrid,
-  Rocket
+  Rocket,
+  PlusCircle,
+  Zap,
+  UserPlus,
+  MessageCircle,
+  Megaphone,
+  ChevronRight,
+  Check,
+  Settings
 } from 'lucide-react';
 import { ViewState, DailyProgress, UserGoals, GamificationState, LEVELS } from '../types';
 import { useAppContext } from '../contexts/AppContext';
@@ -49,46 +41,26 @@ interface HomeViewProps {
   addPoints: (amount: number) => void;
 }
 
-const CircularProgress = ({
+const SimpleCounter = ({
   current,
   max,
   colorClass,
   icon: Icon,
-  size = 70
+  label
 }: {
   current: number;
   max: number;
   colorClass: string;
   icon: React.ElementType,
-  size?: number
+  label: string
 }) => {
-  const radius = size / 2 - 4;
-  const circumference = 2 * Math.PI * radius;
-  const percentage = Math.min(100, Math.max(0, (current / max) * 100));
-  const initialOffset = circumference - (percentage / 100) * circumference;
-  const [offset, setOffset] = useState(initialOffset);
-
-  useEffect(() => {
-    const progressOffset = circumference - (percentage / 100) * circumference;
-    const timer = setTimeout(() => setOffset(progressOffset), 100);
-    return () => clearTimeout(timer);
-  }, [percentage, circumference]);
-
   return (
-    <div className="flex flex-col items-center relative">
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg className="w-full h-full transform -rotate-90">
-          <circle cx={size / 2} cy={size / 2} r={radius} stroke="currentColor" strokeWidth="5" fill="transparent" className="text-slate-700/50" />
-          <circle cx={size / 2} cy={size / 2} r={radius} stroke="currentColor" strokeWidth="5" fill="transparent" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className={`${colorClass} transition-all duration-1000 ease-out`} style={{ strokeDashoffset: offset }} />
-        </svg>
-        <div className={`absolute inset-0 flex items-center justify-center ${colorClass}`}>
-          <Icon size={size * 0.35} />
-        </div>
+    <div className="flex flex-col items-center p-4 bg-slate-700/40 rounded-3xl border border-white/20 flex-1 transition-all duration-300 hover:bg-slate-600/40">
+      <div className={`${colorClass} mb-2`}>
+        <Icon size={24} />
       </div>
-      <div className="absolute -bottom-5 text-center">
-        <span className="text-sm font-bold text-white">{current}</span>
-        <span className="text-[10px] text-slate-400">/{max}</span>
-      </div>
+      <div className="text-2xl font-black text-white">{current}</div>
+      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{label}</div>
     </div>
   );
 };
@@ -167,29 +139,27 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const isFollowUpsDone = progress.followUpsMade >= goals.dailyFollowUps;
 
   const getCardStyle = (type: 'contact' | 'followup' | 'post' | 'objections') => {
-    const base = "w-full group rounded-[32px] p-5 transition-all duration-500 flex items-center justify-between border border-slate-300 shadow-sm ";
+    const base = "w-full group rounded-[32px] p-4 transition-all duration-300 flex items-center justify-between bg-white border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ";
 
     if (type === 'contact') {
-      if (!isContactsDone) return base + "bg-white shadow-[0_0_30px_-5px_rgba(52,211,153,0.3)] scale-[1.02] z-10 relative";
-      return base + "bg-slate-50 opacity-90";
+      const isDone = isContactsDone;
+      if (isDone) return base + "opacity-60";
+      return base;
     }
     if (type === 'followup') {
-      const isActive = isContactsDone || progress.followUpsMade > 0;
-      if (!isActive) return base + "bg-slate-50 opacity-60";
-      if (!isFollowUpsDone) return base + "bg-white shadow-[0_0_30px_-5px_rgba(96,165,250,0.3)] scale-[1.02] z-10 relative";
-      return base + "bg-slate-50 opacity-90";
+      const isDone = isFollowUpsDone;
+      if (isDone) return base + "opacity-60";
+      return base;
     }
     if (type === 'post') {
-      const isActive = isFollowUpsDone || (progress.postsMade || 0) > 0;
-      if (!isActive) return base + "bg-slate-50 opacity-60";
       const isDone = (progress.postsMade || 0) >= (goals.dailyPosts || 1);
-      if (!isDone) return base + "bg-white shadow-[0_0_30px_-5px_rgba(244,114,182,0.3)] scale-[1.02] z-10 relative";
-      return base + "bg-slate-50 opacity-90";
+      if (isDone) return base + "opacity-60";
+      return base;
     }
     if (type === 'objections') {
-      return base + "bg-white hover:border-slate-400 transition-all";
+      return base;
     }
-    return base + "bg-white";
+    return base;
   };
 
   const currentLevelData = LEVELS.find(l => l.level === gamification.level) || LEVELS[0];
@@ -328,31 +298,133 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 relative z-10 mb-2">
-          <div onClick={() => setViewState('CONTACT')} className={`flex flex-col items-center gap-2 cursor-pointer transition-all duration-500 group ${!isContactsDone ? 'scale-110 drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]' : ''}`}>
-            <CircularProgress current={progress.contactsMade} max={goals.dailyContacts} colorClass="text-emerald-400 group-hover:text-emerald-500 transition-colors" icon={UserPlus} size={64} />
-            <span className={`text-[10px] font-black uppercase tracking-wider mt-4 ${!isContactsDone ? 'text-emerald-400' : 'text-slate-500'}`}>Contactos</span>
-          </div>
-
-          <div onClick={() => setViewState('FOLLOWUP')} className={`flex flex-col items-center gap-2 transition-all duration-500 group ${(!isContactsDone && progress.followUpsMade === 0) ? 'opacity-30 grayscale saturate-0 cursor-not-allowed pointer-events-none' : isFollowUpsDone ? 'cursor-pointer' : 'scale-110 drop-shadow-[0_0_15px_rgba(96,165,250,0.3)] cursor-pointer'}`}>
-            <CircularProgress current={progress.followUpsMade} max={goals.dailyFollowUps} colorClass="text-blue-400 group-hover:text-blue-500 transition-colors" icon={MessageCircle} size={64} />
-            <span className={`text-[10px] font-black uppercase tracking-wider mt-4 ${(isContactsDone || progress.followUpsMade > 0) && !isFollowUpsDone ? 'text-blue-400' : 'text-slate-500'}`}>Seguim.</span>
-          </div>
-
-          <div onClick={() => setViewState('DAILY_POST')} className={`flex flex-col items-center gap-2 relative group transition-all duration-500 ${(!isFollowUpsDone && (progress.postsMade || 0) === 0) ? 'opacity-30 grayscale saturate-0 cursor-not-allowed pointer-events-none' : 'scale-110 drop-shadow-[0_0_15px_rgba(244,114,182,0.3)] cursor-pointer'}`}>
-            <div className="transition-transform active:scale-95 duration-200 relative group w-full h-full flex justify-center">
-              <CircularProgress current={progress.postsMade || 0} max={goals.dailyPosts || 1} colorClass="text-pink-400 group-hover:text-pink-500 transition-colors" icon={Megaphone} size={64} />
-            </div>
-            <span className={`text-[10px] font-black uppercase tracking-wider mt-4 ${(isFollowUpsDone || (progress.postsMade || 0) > 0) ? 'text-pink-400' : 'text-slate-500'}`}>Publicar</span>
-          </div>
+        <div className="grid grid-cols-3 gap-3 relative z-10 mb-2">
+          <SimpleCounter current={progress.contactsMade} max={goals.dailyContacts} colorClass="text-emerald-400" icon={UserPlus} label="Contactos" />
+          <SimpleCounter current={progress.followUpsMade} max={goals.dailyFollowUps} colorClass="text-blue-400" icon={MessageCircle} label="Seguim." />
+          <SimpleCounter current={progress.postsMade || 0} max={goals.dailyPosts || 1} colorClass="text-pink-400" icon={Megaphone} label="Publicar" />
         </div>
       </div>
 
       <ProspectingPulse />
 
+      {/* SECCIÓN: ¿QUÉ HAGO AHORA? (GUÍA MAESTRA) */}
+      <div className="relative overflow-hidden p-8 rounded-[40px] border-2 border-emerald-500/50 bg-emerald-50 dark:bg-slate-900/80 premium-card-shadow group">
+        <div className="absolute top-0 right-0 p-4 opacity-10">
+          <Rocket size={100} className="text-emerald-500" />
+        </div>
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-emerald-500/20">
+            <Rocket size={32} />
+          </div>
+          <p className="text-slate-600 dark:text-slate-300 font-bold mb-8 text-lg">
+            {!isContactsDone
+              ? <span><span className="font-black text-slate-900 dark:text-emerald-50">Tu siguiente paso de hoy es:</span> Hacer tus contactos diarios.</span>
+              : !isFollowUpsDone
+                ? <span><span className="font-black text-slate-900 dark:text-emerald-50">¡Gran trabajo!</span> Ahora toca hacer tus seguimientos.</span>
+                : <span><span className="font-black text-slate-900 dark:text-emerald-50">¡Día Perfecto!</span> Estás dominando el mercado.</span>}
+          </p>
+          <button
+            onClick={() => setViewState(!isContactsDone ? 'CONTACT' : !isFollowUpsDone ? 'FOLLOWUP' : 'DAILY_POST')}
+            className="w-full py-6 bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 bg-[length:200%_auto] hover:bg-[position:100%_0] text-white font-black text-xl rounded-2xl shadow-[0_20px_50px_-12px_rgba(16,185,129,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-500 uppercase tracking-widest flex items-center justify-center gap-3 relative overflow-hidden group/master border border-white/20"
+          >
+            {/* Shimmer sweep effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/master:animate-shimmer-sweep pointer-events-none"></div>
+
+            <span className="relative z-10">HACERLO AHORA</span>
+            <ChevronRight size={24} strokeWidth={3} className="relative z-10 group-hover/master:translate-x-1.5 transition-transform duration-300" />
+          </button>
+        </div>
+      </div>
+
+      {/* MAIN ACTION CARDS - RESTORED & AGUERITA */}
+      <div className="grid grid-cols-1 gap-4">
+        <button onClick={() => setViewState('CONTACT')} className={getCardStyle('contact')}>
+          <div className="flex items-center gap-5">
+            <div className={`p-4 rounded-2xl transition-all duration-300 border-2 ${isContactsDone ? 'bg-slate-100 text-slate-400 border-slate-300/50' : 'bg-emerald-100/50 text-emerald-600 border-emerald-300'}`}>
+              <UserPlus size={24} />
+            </div>
+            <div className="text-left">
+              <h4 className={`font-black text-lg tracking-tight ${isContactsDone ? 'text-slate-400' : 'text-slate-900'}`}>1. Contactar Gente</h4>
+              <p className={`text-[10px] font-bold uppercase tracking-widest ${isContactsDone ? 'text-slate-400' : 'text-slate-400'}`}>
+                TOCA AQUÍ PARA EMPEZAR
+              </p>
+            </div>
+          </div>
+          <div className={`p-1 rounded-full text-slate-300`}>
+            <ChevronRight size={20} strokeWidth={3} />
+          </div>
+        </button>
+
+        {/* FOLLOWUPS */}
+        <button onClick={() => setViewState('FOLLOWUP')} className={getCardStyle('followup')}>
+          <div className="flex items-center gap-5">
+            <div className={`p-4 rounded-2xl transition-all duration-300 border-2 ${isFollowUpsDone ? 'bg-slate-100 text-slate-400 border-slate-300/50' : 'bg-blue-100/50 text-blue-600 border-blue-300'}`}>
+              <MessageCircle size={24} />
+            </div>
+            <div className="text-left">
+              <h4 className={`font-black text-lg tracking-tight ${isFollowUpsDone ? 'text-slate-400' : 'text-slate-900'}`}>2. Dar Seguimiento</h4>
+              <p className={`text-[10px] font-bold uppercase tracking-widest ${isFollowUpsDone ? 'text-slate-400' : 'text-slate-400'}`}>
+                TOCA AQUÍ PARA CERRAR TRATOS
+              </p>
+            </div>
+          </div>
+          <div className={`p-1 rounded-full text-slate-300`}>
+            <ChevronRight size={20} strokeWidth={3} />
+          </div>
+        </button>
+
+        {/* POSTS */}
+        <button onClick={() => setViewState('DAILY_POST')} className={getCardStyle('post')}>
+          <div className="flex items-center gap-5">
+            <div className={`p-4 rounded-2xl transition-all duration-300 border-2 ${(progress.postsMade || 0) >= (goals.dailyPosts || 1) ? 'bg-slate-100 text-slate-400 border-slate-300/50' : 'bg-pink-100/50 text-pink-600 border-pink-300'}`}>
+              <Megaphone size={24} />
+            </div>
+            <div className="text-left">
+              <h4 className={`font-black text-lg tracking-tight ${(progress.postsMade || 0) >= (goals.dailyPosts || 1) ? 'text-slate-400' : 'text-slate-900'}`}>3. Publicar en Redes</h4>
+              <p className={`text-[10px] font-bold uppercase tracking-widest ${(progress.postsMade || 0) >= (goals.dailyPosts || 1) ? 'text-slate-400' : 'text-slate-400'}`}>
+                TOCA AQUÍ PARA ATRAER GENTE
+              </p>
+            </div>
+          </div>
+          <div className={`p-1 rounded-full text-slate-300`}>
+            <ChevronRight size={20} strokeWidth={3} />
+          </div>
+        </button>
+
+        {/* OBJECTIONS */}
+        <button onClick={() => setViewState('OBJECTIONS')} className={getCardStyle('objections')}>
+          <div className="flex items-center gap-5">
+            <div className="bg-orange-100/50 text-orange-600 p-4 rounded-2xl border-2 border-orange-300 transition-all duration-300">
+              <ShieldCheck size={24} />
+            </div>
+            <div className="text-left">
+              <h4 className="font-black text-lg text-slate-900 tracking-tight">Biblioteca de Objeciones</h4>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                AYUDA PARA RESPONDER MENSAJES
+              </p>
+            </div>
+          </div>
+          <div className="p-1 rounded-full text-slate-300">
+            <ChevronRight size={20} strokeWidth={3} />
+          </div>
+        </button>
+      </div>
+
+
+      <TaskTracker
+        onNavigate={setViewState}
+        onAddPoints={addPoints}
+      />
+
+      <div className="my-14 flex items-center justify-center gap-4 px-10">
+        <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-slate-400 to-transparent" />
+        <div className="w-2.5 h-2 rounded-full border-[3px] border-slate-400 rotate-45" />
+        <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-slate-400 to-transparent" />
+      </div>
+
       {gamification.currentMission && (
         <div className={`relative overflow-hidden p-8 rounded-[var(--radius-premium)] border transition-all duration-700 ${gamification.currentMission.completed
-          ? 'bg-emerald-500/25 border-emerald-500/40 scale-[0.98]'
+          ? 'bg-emerald-50 dark:bg-emerald-950/80 border-emerald-500/50 scale-[0.98]'
           : 'bg-white border-slate-100 premium-card-shadow group'}`}>
 
           <div className="relative z-10 flex flex-col items-center text-center">
@@ -374,11 +446,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
             {!gamification.currentMission.completed ? (
               <button
                 onClick={onCompleteMission}
-                className="relative group/btn bg-slate-900 border border-white/10 overflow-hidden text-white text-[11px] font-black px-12 py-5 rounded-2xl hover:bg-indigo-600 transition-all active:scale-95 uppercase tracking-widest shadow-2xl flex items-center gap-3"
+                className="relative group/btn bg-slate-900 border border-white/10 overflow-hidden text-white text-[10px] font-black px-8 py-5 rounded-2xl hover:bg-indigo-600 transition-all active:scale-95 uppercase tracking-widest shadow-2xl flex items-center gap-3"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-shimmer-sweep"></div>
                 <Zap size={16} className="text-amber-400 animate-zap-pulse relative z-10" fill="currentColor" />
-                <span className="relative z-10 animate-zap-pulse text-amber-50">!RECLAMAR PUNTOS!</span>
+                <div className="flex flex-col items-center relative z-10 animate-zap-pulse text-amber-50 leading-none">
+                  <span className="text-[12px] mb-1">¡COMPLETAR TAREA!</span>
+                  <span className="text-[10px] opacity-80">RECLAMAR PUNTOS</span>
+                </div>
               </button>
             ) : (
               <div className="bg-emerald-500/10 text-emerald-600 border border-emerald-200/50 text-[11px] font-black px-12 py-5 rounded-2xl flex items-center gap-3 transition-opacity">
@@ -390,120 +465,31 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 mt-8">
-        <button
-          onClick={() => setViewState('CONTACT')}
-          className={getCardStyle('contact') + " active:scale-95 duration-300 group overflow-hidden"}
-        >
-          <div className="flex items-center gap-5">
-            <div className="bg-emerald-50 p-4 rounded-2xl text-emerald-600 transition-transform group-hover:scale-105 duration-500">
-              <UserPlus size={24} />
-            </div>
-            <div className="text-left">
-              <h3 className="font-black text-[15px] text-slate-900 leading-tight">Paso 1: Contactar</h3>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">
-                {isContactsDone ? '¡Completado!' : '¡CONECTA Y CONQUISTA!'}
-              </p>
-            </div>
-          </div>
-          <div className="bg-slate-100 p-3.5 rounded-full text-slate-600 group-hover:text-emerald-700 transition-colors">
-            <ChevronRight size={18} strokeWidth={4} />
-          </div>
-        </button>
 
-        <button
-          onClick={() => setViewState('FOLLOWUP')}
-          className={getCardStyle('followup') + " active:scale-95 duration-300 group overflow-hidden"}
-        >
-          <div className="flex items-center gap-5">
-            <div className="bg-blue-50 p-4 rounded-2xl text-blue-600 transition-transform group-hover:scale-105 duration-500">
-              <MessageCircle size={24} />
-            </div>
-            <div className="text-left">
-              <h3 className="font-black text-[15px] text-slate-900 leading-tight">Paso 2: Seguimiento</h3>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">
-                {!isContactsDone ? 'CIERRA TRATOS HOY' : isFollowUpsDone ? '¡COMPLETADO!' : 'CIERRA TRATOS HOY'}
-              </p>
-            </div>
-          </div>
-          <div className="bg-slate-100 p-3.5 rounded-full text-slate-600 group-hover:text-blue-700 transition-colors">
-            <ChevronRight size={18} strokeWidth={4} />
-          </div>
-        </button>
-
-        <button
-          onClick={() => setViewState('DAILY_POST')}
-          className={getCardStyle('post') + " active:scale-95 duration-300 group overflow-hidden"}
-        >
-          <div className="flex items-center gap-5">
-            <div className="bg-pink-50 p-4 rounded-2xl text-pink-600 transition-transform group-hover:scale-105 duration-500">
-              <Megaphone size={24} />
-            </div>
-            <div className="text-left">
-              <h3 className="font-black text-[15px] text-slate-900 leading-tight">Paso 3: Publicar</h3>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">¡IMPACTA Y CRECE!</p>
-            </div>
-          </div>
-          <div className="bg-slate-100 p-3.5 rounded-full text-slate-600 group-hover:text-pink-700 transition-colors">
-            <ChevronRight size={18} strokeWidth={4} />
-          </div>
-        </button>
-
-        <button
-          onClick={() => setViewState('OBJECTIONS')}
-          className={getCardStyle('objections') + " active:scale-95 duration-300 group overflow-hidden"}
-        >
-          <div className="flex items-center gap-5">
-            <div className="bg-amber-50 p-4 rounded-2xl text-amber-600 transition-transform group-hover:scale-105 duration-500">
-              <ShieldCheck size={24} />
-            </div>
-            <div className="text-left">
-              <h3 className="font-black text-[15px] text-slate-900 leading-tight">Biblioteca de Objeciones</h3>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">HERRAMIENTA DE APOYO</p>
-            </div>
-          </div>
-          <div className="bg-slate-100 p-3.5 rounded-full text-slate-600 group-hover:text-amber-700 transition-colors">
-            <ChevronRight size={18} strokeWidth={4} />
-          </div>
-        </button>
-      </div>
-
-      <TaskTracker
-        onNavigate={setViewState}
-        onAddPoints={addPoints}
-      />
-
-      <div className="my-10 flex items-center justify-center gap-4 px-10 opacity-100">
-        <div className="h-[1.5px] flex-1 bg-gradient-to-r from-transparent via-slate-800 dark:via-slate-300 to-transparent" />
-        <div className="w-2.5 h-2.5 rounded-sm border-2 border-slate-800 dark:border-slate-300 rotate-45" />
-        <div className="h-[1.5px] flex-1 bg-gradient-to-r from-transparent via-slate-800 dark:via-slate-300 to-transparent" />
-      </div>
+      <DailySecret />
 
       <button
         onClick={() => setViewState('GOALS')}
-        className="w-full bg-slate-900 text-white p-6 rounded-[32px] flex items-center justify-between border border-white/10 shadow-2xl hover:bg-black transition-all active:scale-[0.98] group"
+        className="w-full bg-slate-900 text-white p-5 rounded-[32px] flex items-center justify-between border-4 border-indigo-500/20 shadow-2xl hover:bg-black transition-all active:scale-[0.98] group"
       >
-        <div className="flex items-center gap-5">
-          <div className="p-1 text-white group-hover:rotate-12 transition-transform">
+        <div className="flex items-center gap-4">
+          <div className="bg-indigo-500/10 p-3 rounded-[20px] text-indigo-400 group-hover:rotate-12 transition-transform">
             <Settings size={28} />
           </div>
           <div className="text-left">
-            <h3 className="font-black text-[18px] tracking-tight">Mis Metas</h3>
-            <p className="text-[10px] font-black text-indigo-300/60 uppercase tracking-widest">Configurar mi negocio</p>
+            <h3 className="font-black text-lg tracking-tight uppercase leading-tight">Mis Metas de Negocio</h3>
+            <p className="text-xs font-bold text-indigo-300 opacity-80 uppercase tracking-widest mt-0.5">Configura cuánto quieres ganar</p>
           </div>
         </div>
-        <div className="bg-white/10 p-3 rounded-full">
+        <div className="bg-white/10 p-2.5 rounded-full">
           <ChevronRight size={20} strokeWidth={4} />
         </div>
       </button>
 
-      <DailySecret />
-
-      {/* Separador Visual (Servicios Exclusivos) */}
-      <div className="my-10 flex items-center justify-center gap-4 px-10 opacity-100">
-        <div className="h-[1.5px] flex-1 bg-gradient-to-r from-transparent via-slate-800 dark:via-slate-300 to-transparent" />
-        <div className="w-2.5 h-2.5 rounded-sm border-2 border-slate-800 dark:border-slate-300 rotate-45" />
-        <div className="h-[1.5px] flex-1 bg-gradient-to-r from-transparent via-slate-800 dark:via-slate-300 to-transparent" />
+      <div className="my-14 flex items-center justify-center gap-4 px-10">
+        <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-slate-400 to-transparent" />
+        <div className="w-2.5 h-2 rounded-full border-[3px] border-slate-400 rotate-45" />
+        <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-slate-400 to-transparent" />
       </div>
 
       <EliteCommandCenter />

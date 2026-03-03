@@ -23,6 +23,7 @@ import { Layout } from './components/Layout';
 import { Onboarding } from './components/Onboarding';
 import { DuplicationModal } from './components/DuplicationModal';
 import { ProactiveSalesModal } from './components/ProactiveSalesModal';
+import { LoadingSkeleton } from './components/LoadingSkeleton';
 import { useDuplicationProtocol } from './hooks/useDuplicationProtocol';
 
 import { ViewState, DailyProgress, UserGoals, GamificationState, LEVELS } from './types';
@@ -56,17 +57,18 @@ function App() {
   // DUPLICATION PROTOCOL (Extracted to hook)
   const { incomingGoals, setIncomingGoals } = useDuplicationProtocol();
   // FORCE CACHE CLEANING (VERSIONING) & URL Cleanup
-  const APP_VERSION = '1.8.0-ui-tweaks'; // Cache Nuke 
+  const APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.8.0-mission-fix';
   useEffect(() => {
     const savedVersion = localStorage.getItem('appVersion');
     if (savedVersion && savedVersion !== APP_VERSION) {
-      console.log('🚀 Nueva versión detectada. Limpiando caché...', APP_VERSION);
+      console.log('🚀 Nueva versión detectada:', APP_VERSION, '(Anterior:', savedVersion + ')');
       localStorage.setItem('appVersion', APP_VERSION);
 
       // Force reload ignoring cache if version changed
       if ('caches' in window) {
         caches.keys().then(names => {
           Promise.all(names.map(name => caches.delete(name))).then(() => {
+            console.log('🧹 Caché eliminada satisfactoriamente.');
             (window as any).location.reload();
           });
         });
@@ -147,7 +149,7 @@ function App() {
 
   const renderRouterViews = () => {
     return (
-      <Suspense fallback={<div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div></div>}>
+      <Suspense fallback={<LoadingSkeleton />}>
         <Routes>
           <Route path="/" element={
             <HomeView setViewState={navigateTo} onShowHelp={() => setShowHelp(true)} onRecordPost={handleRecordPost} onCompleteMission={completeMission} />

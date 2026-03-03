@@ -111,88 +111,74 @@ export const TaskTracker: React.FC<TaskTrackerProps> = ({ onNavigate, onAddPoint
             </div>
 
             <div className="space-y-3 relative z-10">
-                {tasks.length === 0 ? (
-                    <div className="flex items-center gap-4 py-6 bg-slate-50/50 rounded-[28px] border border-slate-300 transition-all hover:bg-white hover:border-indigo-200 px-6">
-                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 shrink-0">
-                            <Zap size={24} className="text-amber-400" fill="currentColor" />
+                {tasks.map((task) => (
+                    <div
+                        key={task.id}
+                        className={`flex items-center justify-between p-4.5 rounded-[22px] border-2 transition-all duration-300 relative overflow-hidden group/item ${task.completed
+                            ? 'bg-slate-50/80 border-slate-100 opacity-60'
+                            : 'bg-white border-slate-300 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(79,70,229,0.08)] hover:border-indigo-200 hover:-translate-y-0.5'
+                            }`}
+                    >
+                        {/* Subtle accent line for active tasks */}
+                        {!task.completed && (
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500/10 group-hover/item:w-1.5 transition-all" />
+                        )}
+
+                        <div className="flex items-center gap-4 overflow-hidden flex-1 relative z-10">
+                            <button
+                                onClick={() => toggleTask(task.id)}
+                                className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all ${task.completed
+                                    ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-100'
+                                    : 'border-slate-200 hover:border-emerald-400 hover:bg-emerald-50 hover:scale-110'
+                                    }`}
+                            >
+                                {task.completed && <Check size={20} strokeWidth={4} />}
+                            </button>
+                            <span className={`text-[15px] font-black text-slate-800 truncate tracking-tight ${task.completed ? 'line-through text-slate-400' : ''}`}>
+                                {task.name}
+                            </span>
+                            {!task.completed && (() => {
+                                const ageHours = (Date.now() - task.createdAt) / (1000 * 60 * 60);
+                                if (ageHours >= 24 && ageHours <= 48) {
+                                    return (
+                                        <div className="flex items-center gap-1 bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full text-[10px] font-black animate-pulse">
+                                            🔥 CALIENTE
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
                         </div>
-                        <div className="text-left">
-                            <p className="text-[13px] text-slate-800 font-black uppercase tracking-tight leading-tight">Tu lista está vacía</p>
-                            <p className="text-[12px] text-slate-400 font-bold mt-1">
-                                Añade a alguien ahora
-                            </p>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                            {!task.completed && (
+                                <>
+                                    <button
+                                        onClick={() => onNavigate && onNavigate('CONTACT')}
+                                        className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all active:scale-90"
+                                        title="Enviar Mensaje"
+                                    >
+                                        <SendHorizontal size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => onNavigate && onNavigate('OBJECTIONS')}
+                                        className="p-2.5 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-600 hover:text-white transition-all active:scale-90"
+                                        title="Ver Objeciones"
+                                    >
+                                        <ShieldCheck size={18} />
+                                    </button>
+                                </>
+                            )}
+                            <button
+                                onClick={() => removeTask(task.id)}
+                                className="p-2.5 text-slate-300 hover:text-red-500 transition-colors"
+                                title="Eliminar"
+                            >
+                                <Trash2 size={18} />
+                            </button>
                         </div>
                     </div>
-                ) : (
-                    tasks.map((task) => (
-                        <div
-                            key={task.id}
-                            className={`flex items-center justify-between p-4.5 rounded-[22px] border-2 transition-all duration-300 relative overflow-hidden group/item ${task.completed
-                                ? 'bg-slate-50/80 border-slate-100 opacity-60'
-                                : 'bg-white border-slate-300 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(79,70,229,0.08)] hover:border-indigo-200 hover:-translate-y-0.5'
-                                }`}
-                        >
-                            {/* Subtle accent line for active tasks */}
-                            {!task.completed && (
-                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500/10 group-hover/item:w-1.5 transition-all" />
-                            )}
-
-                            <div className="flex items-center gap-4 overflow-hidden flex-1 relative z-10">
-                                <button
-                                    onClick={() => toggleTask(task.id)}
-                                    className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all ${task.completed
-                                        ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-100'
-                                        : 'border-slate-200 hover:border-emerald-400 hover:bg-emerald-50 hover:scale-110'
-                                        }`}
-                                >
-                                    {task.completed && <Check size={20} strokeWidth={4} />}
-                                </button>
-                                <span className={`text-[15px] font-black text-slate-800 truncate tracking-tight ${task.completed ? 'line-through text-slate-400' : ''}`}>
-                                    {task.name}
-                                </span>
-                                {!task.completed && (() => {
-                                    const ageHours = (Date.now() - task.createdAt) / (1000 * 60 * 60);
-                                    if (ageHours >= 24 && ageHours <= 48) {
-                                        return (
-                                            <div className="flex items-center gap-1 bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full text-[10px] font-black animate-pulse">
-                                                🔥 CALIENTE
-                                            </div>
-                                        );
-                                    }
-                                    return null;
-                                })()}
-                            </div>
-
-                            <div className="flex items-center gap-1.5 shrink-0">
-                                {!task.completed && (
-                                    <>
-                                        <button
-                                            onClick={() => onNavigate && onNavigate('CONTACT')}
-                                            className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all active:scale-90"
-                                            title="Enviar Mensaje"
-                                        >
-                                            <SendHorizontal size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => onNavigate && onNavigate('OBJECTIONS')}
-                                            className="p-2.5 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-600 hover:text-white transition-all active:scale-90"
-                                            title="Ver Objeciones"
-                                        >
-                                            <ShieldCheck size={18} />
-                                        </button>
-                                    </>
-                                )}
-                                <button
-                                    onClick={() => removeTask(task.id)}
-                                    className="p-2.5 text-slate-300 hover:text-red-500 transition-colors"
-                                    title="Eliminar"
-                                >
-                                    <Trash2 size={18} />
-                                </button>
-                            </div>
-                        </div>
-                    ))
-                )}
+                ))}
             </div>
         </div>
     );

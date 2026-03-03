@@ -81,13 +81,6 @@ export const EliteCommandCenter = () => {
                     </span>
                 </a>
 
-                {/* Note / Availability (50% opacity) */}
-                <div className="mt-8 flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                    <p className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em]">
-                        Cupos limitados para este mes
-                    </p>
-                </div>
             </div>
         </div>
     );

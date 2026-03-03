@@ -69,10 +69,14 @@ export const TeamView: React.FC<TeamViewProps> = ({ onJoinTeam, onBack }) => {
                         <button
                             onClick={handleJoin}
                             disabled={!code || isJoining}
-                            className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black shadow-xl hover:bg-black active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-3 uppercase tracking-widest text-sm"
+                            className={`w-full py-5 rounded-2xl font-black shadow-xl active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-3 uppercase tracking-widest text-sm
+                                ${isJoining ? 'bg-indigo-600 animate-pulse' : 'bg-slate-900 hover:bg-black'} text-white`}
                         >
                             {isJoining ? (
-                                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                    <span>Verificando Licencia...</span>
+                                </div>
                             ) : (
                                 <>Validar Licencia <ArrowRight size={18} /></>
                             )}
@@ -89,8 +93,8 @@ export const TeamView: React.FC<TeamViewProps> = ({ onJoinTeam, onBack }) => {
                         </div>
 
                         <div className="grid grid-cols-1 gap-3">
-                            <div className="flex items-center gap-4 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm group hover:border-indigo-200 transition-all active:scale-95 cursor-pointer">
-                                <div className="shrink-0 w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                            <div className="flex items-center gap-4 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm group hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95 cursor-pointer">
+                                <div className="shrink-0 w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white group-hover:rotate-6 transition-all">
                                     <CheckCircle2 size={20} strokeWidth={3} />
                                 </div>
                                 <div className="text-left">
@@ -99,8 +103,8 @@ export const TeamView: React.FC<TeamViewProps> = ({ onJoinTeam, onBack }) => {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-4 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm group hover:border-indigo-200 transition-all active:scale-95 cursor-pointer">
-                                <div className="shrink-0 w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                            <div className="flex items-center gap-4 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm group hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95 cursor-pointer">
+                                <div className="shrink-0 w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white group-hover:rotate-6 transition-all">
                                     <CheckCircle2 size={20} strokeWidth={3} />
                                 </div>
                                 <div className="text-left">
@@ -109,8 +113,8 @@ export const TeamView: React.FC<TeamViewProps> = ({ onJoinTeam, onBack }) => {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-4 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm group hover:border-indigo-200 transition-all active:scale-95 cursor-pointer">
-                                <div className="shrink-0 w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-all">
+                            <div className="flex items-center gap-4 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm group hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95 cursor-pointer">
+                                <div className="shrink-0 w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-white group-hover:rotate-6 transition-all">
                                     <CheckCircle2 size={20} strokeWidth={3} />
                                 </div>
                                 <div className="text-left">
@@ -119,8 +123,8 @@ export const TeamView: React.FC<TeamViewProps> = ({ onJoinTeam, onBack }) => {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-4 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm group hover:border-indigo-200 transition-all active:scale-95 cursor-pointer">
-                                <div className="shrink-0 w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                            <div className="flex items-center gap-4 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm group hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95 cursor-pointer">
+                                <div className="shrink-0 w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white group-hover:rotate-6 transition-all">
                                     <CheckCircle2 size={20} strokeWidth={3} />
                                 </div>
                                 <div className="text-left">
