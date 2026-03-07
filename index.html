@@ -114,6 +114,21 @@
         }, 4000);
 
         window.onerror = function (msg, url, line, col, error) {
+            // Ignorar errores relacionados a scripts de Google (adblockers)
+            const errorMsg = (msg && typeof msg === 'string') ? msg.toLowerCase() : '';
+            const errorUrl = url ? url.toLowerCase() : '';
+            if (
+                errorUrl.includes('googletagmanager') ||
+                errorUrl.includes('google-analytics') ||
+                errorMsg.includes('googletagmanager') ||
+                errorMsg.includes('google-analytics') ||
+                errorMsg.includes('gtag is not defined') ||
+                errorMsg.includes('datalayer is not defined')
+            ) {
+                console.warn('⚠️ Error de analítica silenciado (posible adblocker):', msg);
+                return false;
+            }
+
             document.getElementById('critical-diagnostic').style.display = 'block';
             const log = document.getElementById('diagnostic-log');
             const fileName = url ? url.split('/').pop() : 'script-externo';
@@ -129,6 +144,9 @@
                 // Ignorar errores de scripts de analítica (adblockers)
                 if (src.includes('googletagmanager') || src.includes('google-analytics')) {
                     console.warn('⚠️ Script de analítica bloqueado (posible adblocker). Ignorando...', src);
+                    // Importante: detener la propagación para que no llegue a otros handlers
+                    e.preventDefault();
+                    e.stopPropagation();
                     return;
                 }
                 document.getElementById('critical-diagnostic').style.display = 'block';
