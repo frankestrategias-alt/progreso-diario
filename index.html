@@ -42,13 +42,25 @@
     <meta http-equiv="Expires" content="0">
     <link rel="stylesheet" href="/index.css">
 
-    <!-- GOOGLE ANALYTICS MAESTRO (Frank Estrategias) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-KWPGF9WES2"></script>
+    <!-- GOOGLE ANALYTICS MAESTRO (Frank Estrategias) - Carga Dinámica Segura Anti-Adblock -->
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag() { dataLayer.push(arguments); }
         gtag('js', new Date());
         gtag('config', 'G-KWPGF9WES2');
+
+        // Inyectar GTM dinámicamente para evitar que fallos de red disparen errores globales
+        (function () {
+            var gtmScript = document.createElement('script');
+            gtmScript.async = true;
+            gtmScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-KWPGF9WES2';
+            gtmScript.onerror = function (e) {
+                // Silenciar el error a nivel del elemento para que no suba a window.onerror
+                console.warn('⚠️ GTM bloqueado (AdBlocker) a nivel de elemento. Silenciado.');
+                e.stopPropagation();
+            };
+            document.head.appendChild(gtmScript);
+        })();
     </script>
 
     <!-- FRANK BOLIVAR AI (Motor Elite Personalized) -->
